@@ -3,13 +3,14 @@ LABEL maintainer="taodev <taodev@gmail.com>"
 WORKDIR /app
 COPY . .
 RUN go mod download
-RUN go build -v -trimpath -o godns -ldflags "-s -w" ./cmd/godns
+RUN go build -v -trimpath -o godns -ldflags "-s -w" ./cmd/godns && \
+		sh ./.github/update-geosite.sh
 
 # 第二阶段：极简运行环境
 FROM alpine:latest
 LABEL maintainer="taodev <taodev@gmail.com>"
 COPY --from=builder /app/godns /usr/local/bin/godns
-COPY ./conf/geosite.dat /etc/godns/geosite.dat
+COPY --from=builder /var/lib/godns/geosite.dat /var/lib/godns/geosite.dat
 RUN apk add --no-cache bash tzdata ca-certificates
 EXPOSE 53/udp
 EXPOSE 443/tcp
