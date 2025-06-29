@@ -9,6 +9,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/pkg/bootstrap"
+	"github.com/taodev/pkg/geodb"
 )
 
 type DnsServer struct {
@@ -43,6 +44,8 @@ func (s *DnsServer) init() (err error) {
 		}))
 		slog.SetDefault(s.logger)
 	}
+
+	geodb.GeoSitePath = opts.GeoSite
 
 	// 初始化 bootstrap dns
 	if err := bootstrap.SetDNS(opts.BootstrapDNS); err != nil {

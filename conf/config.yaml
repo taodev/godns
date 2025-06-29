@@ -1,9 +1,10 @@
 log-level: debug
 
 udp: :55
-doh: :443
-cert: conf/cert.pem
-key: conf/key.pem
+# doh: :443
+# cert: conf/cert.pem
+# key: conf/key.pem
+geosite: conf/geosite.dat
 
 bootstrap-dns:
   - 223.5.5.5

@@ -8,6 +8,7 @@ type Options struct {
 	DoH      string `yaml:"doh"`
 	Cert     string `yaml:"cert"`
 	Key      string `yaml:"key"`
+	GeoSite  string `yaml:"geosite"`
 
 	BootstrapDNS []string `yaml:"bootstrap-dns"`
 

@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/miekg/dns v1.1.66
-	github.com/taodev/pkg v0.1.1
+	github.com/taodev/pkg v0.1.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
