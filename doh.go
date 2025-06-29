@@ -1,6 +1,7 @@
 package godns
 
 import (
+	"encoding/base64"
 	"io"
 	"log/slog"
 	"net/http"
@@ -36,8 +37,9 @@ func (s *DnsServer) setupDohServer() error {
 }
 
 func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "only POST supported", http.StatusMethodNotAllowed)
+	if r.Method != http.MethodPost && r.Method != http.MethodGet {
+		// 必须是 POST 和 GET 方法
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	if r.Header.Get("Content-Type") != "application/dns-message" {
@@ -45,10 +47,28 @@ func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "read failed", http.StatusBadRequest)
-		return
+	var body []byte
+	var err error
+	if r.Method == http.MethodPost {
+		// 处理 POST 请求体
+		body, err = io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "read failed", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// 读取 GET 参数 `dns`（Base64URL 编码的 wire format 数据）
+		dnsParam := r.URL.Query().Get("dns")
+		if dnsParam == "" {
+			http.Error(w, "Missing 'dns' query parameter", http.StatusBadRequest)
+			return
+		}
+		// Base64URL 解码
+		body, err = base64.RawURLEncoding.DecodeString(dnsParam)
+		if err != nil {
+			http.Error(w, "Invalid base64url in 'dns' parameter", http.StatusBadRequest)
+			return
+		}
 	}
 
 	var req dns.Msg
