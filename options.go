@@ -28,6 +28,8 @@ type Options struct {
 		MaxCost     int64         `yaml:"max-cost"`
 		BufferItems int64         `yaml:"buffer-items"`
 		TTL         time.Duration `yaml:"ttl"`
+		MinTTL      uint32        `yaml:"min-ttl"` // 覆盖最小 TTL 值
+		MaxTTL      uint32        `yaml:"max-ttl"` // 覆盖最大 TTL
 	} `yaml:"cache"`
 
 	Upstream        map[string]string `yaml:"upstream"`

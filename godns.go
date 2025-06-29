@@ -62,9 +62,11 @@ func (s *DnsServer) init() (err error) {
 	}
 
 	s.upstream = NewUpstreamManager(opts.Upstream)
-	s.upstream.SetDefault(opts.DefaultUpstream)
-
-	s.router, err = NewRouter(opts.Route)
+	s.router, err = NewRouter(opts.Route, opts.DefaultUpstream)
+	if err != nil {
+		return err
+	}
+	err = s.router.Check(s.upstream)
 	if err != nil {
 		return err
 	}

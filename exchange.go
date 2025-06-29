@@ -3,7 +3,6 @@ package godns
 import (
 	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/miekg/dns"
 )
@@ -27,41 +26,42 @@ func (s *DnsServer) exchange(r *dns.Msg) (resp *dns.Msg, err error) {
 		if resp.IsExpired() {
 			// 异步刷新缓存
 			go func(domain string, qtype uint16, question dns.Question) {
-				upstream, ok := s.router.Route(domain)
-				var rtt time.Duration
-				var refreshResp *dns.Msg
-				var refreshErr error
+				name := s.router.Route(domain)
 				msg := new(dns.Msg)
 				msg.SetQuestion(question.Name, question.Qtype)
-				if ok {
-					refreshResp, rtt, refreshErr = s.upstream.Exchange(upstream, msg)
-				} else {
-					upstream = s.upstream.defaultUpstream.Name()
-					refreshResp, rtt, refreshErr = s.upstream.defaultUpstream.Exchange(msg)
+
+				refreshResp, rtt, refreshErr := s.upstream.Exchange(name, msg)
+				if refreshErr != nil {
+					slog.Warn("dns async refresh error", "error", refreshErr, "upstream", name, "domain", question.Name, "qtype", dns.TypeToString[qtype])
+					return
 				}
-				if refreshErr == nil && refreshResp != nil && refreshResp.Rcode == dns.RcodeSuccess {
-					s.cache.Set(domain, qtype, refreshResp.Copy())
-					slog.Info("dns async refresh", "rcode", refreshResp.Rcode, "rtt", rtt, "upstream", upstream, "question", question.Name)
+				if refreshResp.Rcode != dns.RcodeSuccess {
+					slog.Warn("dns async refresh failed", "rcode", refreshResp.Rcode, "upstream", name, "domain", question.Name, "qtype", dns.TypeToString[qtype])
+					return
 				}
+				updateMsgTTL(refreshResp, s.Options.Cache.MinTTL, s.Options.Cache.MaxTTL)
+				s.cache.Set(domain, qtype, refreshResp.Copy())
+				slog.Info("dns async refresh", "rcode", refreshResp.Rcode, "rtt", rtt, "upstream", name, "question", question.Name)
 			}(domain, q.Qtype, q)
 		}
 
 		return cacheResp, nil
 	}
 
-	upstream, ok := s.router.Route(domain)
-	var rtt time.Duration
-	if ok {
-		resp, rtt, err = s.upstream.Exchange(upstream, r)
-	} else {
-		upstream = s.upstream.defaultUpstream.Name()
-		resp, rtt, err = s.upstream.defaultUpstream.Exchange(r)
+	name := s.router.Route(domain)
+	resp, rtt, err := s.upstream.Exchange(name, r)
+	if err != nil {
+		slog.Warn("dns upstream exchange error", "error", err, "upstream", name, "domain", q.Name, "qtype", dns.TypeToString[q.Qtype])
+		return nil, err
+	}
+	if resp.Rcode != dns.RcodeSuccess {
+		slog.Warn("dns upstream exchange failed", "rcode", resp.Rcode, "upstream", name, "domain", q.Name, "qtype", dns.TypeToString[q.Qtype])
+		return resp, nil
 	}
 
-	if err == nil && resp != nil && resp.Rcode == dns.RcodeSuccess {
-		s.cache.Set(domain, q.Qtype, resp.Copy())
-		slog.Info("dns", "rcode", resp.Rcode, "rtt", rtt, "upstream", upstream, "question", q.Name)
-	}
+	updateMsgTTL(resp, s.Options.Cache.MinTTL, s.Options.Cache.MaxTTL)
+	s.cache.Set(domain, q.Qtype, resp.Copy())
+	slog.Info("dns", "rcode", resp.Rcode, "rtt", rtt, "upstream", name, "question", q.Name)
 
-	return
+	return resp, nil
 }

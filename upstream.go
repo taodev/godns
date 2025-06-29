@@ -98,8 +98,6 @@ func (c *DoHClient) Exchange(in *dns.Msg) (*dns.Msg, time.Duration, error) {
 type UpstreamManager struct {
 	upstreams map[string]Upstream
 	locker    sync.RWMutex
-
-	defaultUpstream Upstream
 }
 
 // 添加 Upstream
@@ -171,18 +169,8 @@ func (m *UpstreamManager) Remove(name string) {
 	delete(m.upstreams, name)
 }
 
-func (m *UpstreamManager) SetDefault(name string) {
-	m.locker.Lock()
-	defer m.locker.Unlock()
-	m.defaultUpstream = m.upstreams[name]
-}
-
 // 请求
 func (m *UpstreamManager) Exchange(name string, in *dns.Msg) (*dns.Msg, time.Duration, error) {
-	if len(name) <= 0 {
-		return m.defaultUpstream.Exchange(in)
-	}
-
 	upstream, ok := m.Get(name)
 	if !ok {
 		return nil, 0, fmt.Errorf("upstream:%s not found", name)
@@ -197,9 +185,6 @@ func NewUpstreamManager(opts map[string]string) *UpstreamManager {
 
 	for name, addr := range opts {
 		m.Add(name, addr)
-		if m.defaultUpstream == nil {
-			m.defaultUpstream = m.upstreams[name]
-		}
 	}
 
 	return m

@@ -19,3 +19,25 @@ func GetMinTTL(msg *dns.Msg) uint32 {
 	}
 	return minTTL
 }
+
+// 覆写 dns.Msg 的 ttl
+func updateMsgTTL(msg *dns.Msg, minTTL, maxTTL uint32) {
+	for _, rr := range msg.Answer {
+		if minTTL > 0 && rr.Header().Ttl < minTTL {
+			rr.Header().Ttl = minTTL
+		}
+		if maxTTL > 0 && rr.Header().Ttl > maxTTL {
+			rr.Header().Ttl = maxTTL
+		}
+	}
+	for _, rr := range msg.Ns {
+		if minTTL > 0 && rr.Header().Ttl < minTTL {
+			rr.Header().Ttl = minTTL
+		}
+	}
+	for _, rr := range msg.Extra {
+		if minTTL > 0 && rr.Header().Ttl < minTTL {
+			rr.Header().Ttl = minTTL
+		}
+	}
+}
