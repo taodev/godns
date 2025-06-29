@@ -28,7 +28,7 @@ func (s *DnsServer) setupUdpServer() error {
 
 func (s *DnsServer) setupTcpServer() error {
 	dns.HandleFunc(".", s.handle("tcp"))
-	s.udpServer = &dns.Server{
+	s.tcpServer = &dns.Server{
 		Addr: s.Options.UDP,
 		Net:  "tcp",
 	}
