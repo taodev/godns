@@ -9,7 +9,12 @@ geosite: conf/geosite.dat
 bootstrap-dns:
   - 223.5.5.5
   - 223.6.6.6
-  
+
+cache:
+  max-counters: 10000
+  max-cost: 10000
+  buffer-items: 64
+  ttl: 24h
 
 upstream:
   alidns: 223.5.5.5

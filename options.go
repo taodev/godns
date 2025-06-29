@@ -1,6 +1,9 @@
 package godns
 
-import "log/slog"
+import (
+	"log/slog"
+	"time"
+)
 
 type Options struct {
 	LogLevel string `yaml:"log-level"`
@@ -11,6 +14,13 @@ type Options struct {
 	GeoSite  string `yaml:"geosite"`
 
 	BootstrapDNS []string `yaml:"bootstrap-dns"`
+
+	Cache struct {
+		MaxCounters int64         `yaml:"max-counters"`
+		MaxCost     int64         `yaml:"max-cost"`
+		BufferItems int64         `yaml:"buffer-items"`
+		TTL         time.Duration `yaml:"ttl"`
+	} `yaml:"cache"`
 
 	Upstream        map[string]string `yaml:"upstream"`
 	DefaultUpstream string            `yaml:"default-upstream"`

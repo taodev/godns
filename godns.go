@@ -23,6 +23,8 @@ type DnsServer struct {
 
 	router *Router
 
+	cache *Cache
+
 	closeCh   chan struct{}
 	closeOnce sync.Once
 }
@@ -52,6 +54,12 @@ func (s *DnsServer) init() (err error) {
 		return err
 	}
 	slog.Info("bootstrap dns", "dns", opts.BootstrapDNS)
+
+	// 初始化缓存
+	s.cache, err = NewCache(opts.Cache.MaxCounters, opts.Cache.MaxCost, opts.Cache.BufferItems, opts.Cache.TTL)
+	if err != nil {
+		return err
+	}
 
 	s.upstream = NewUpstreamManager(opts.Upstream)
 	s.upstream.SetDefault(opts.DefaultUpstream)
@@ -96,6 +104,8 @@ func (s *DnsServer) Serve() error {
 			slog.Error("doh server shutdown error", slog.Any("err", err))
 		}
 	}
+
+	s.cache.Close()
 
 	return nil
 }
