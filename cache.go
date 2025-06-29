@@ -10,8 +10,13 @@ import (
 )
 
 type CacheValue struct {
-	M *dns.Msg
-	T int64
+	M        *dns.Msg
+	ExpireAt int64
+}
+
+// 是否过期
+func (cv CacheValue) IsExpired() bool {
+	return time.Now().Unix() > cv.ExpireAt
 }
 
 type Cache struct {
@@ -25,8 +30,8 @@ func (c *Cache) Close() {
 
 func (c *Cache) Set(domain string, qtype uint16, msg *dns.Msg) {
 	ok := c.cache.SetWithTTL(fmt.Sprintf("%s-%d", domain, qtype), CacheValue{
-		M: msg,
-		T: time.Now().Unix(),
+		M:        msg,
+		ExpireAt: time.Now().Unix() + int64(GetMinTTL(msg)),
 	}, 1, c.ttl)
 	if !ok {
 		slog.Warn("cache set failed", "domain", domain, "qtype", qtype)

@@ -23,6 +23,29 @@ func (s *DnsServer) exchange(r *dns.Msg) (resp *dns.Msg, err error) {
 		cacheResp := resp.M.Copy()
 		cacheResp.Id = r.Id
 		slog.Debug("dns hit cache", "domain", q.Name)
+
+		if resp.IsExpired() {
+			// 异步刷新缓存
+			go func(domain string, qtype uint16, question dns.Question) {
+				upstream, ok := s.router.Route(domain)
+				var rtt time.Duration
+				var refreshResp *dns.Msg
+				var refreshErr error
+				msg := new(dns.Msg)
+				msg.SetQuestion(question.Name, question.Qtype)
+				if ok {
+					refreshResp, rtt, refreshErr = s.upstream.Exchange(upstream, msg)
+				} else {
+					upstream = s.upstream.defaultUpstream.Name()
+					refreshResp, rtt, refreshErr = s.upstream.defaultUpstream.Exchange(msg)
+				}
+				if refreshErr == nil && refreshResp != nil && refreshResp.Rcode == dns.RcodeSuccess {
+					s.cache.Set(domain, qtype, refreshResp.Copy())
+					slog.Info("dns async refresh", "rcode", refreshResp.Rcode, "rtt", rtt, "upstream", upstream, "question", question.Name)
+				}
+			}(domain, q.Qtype, q)
+		}
+
 		return cacheResp, nil
 	}
 
