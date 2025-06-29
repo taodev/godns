@@ -1,0 +1,24 @@
+log-level: debug
+
+udp: :55
+doh: :443
+cert: conf/mydev.run.pem
+key: conf/mydev.run-key.pem
+
+bootstrap-dns:
+  - 223.5.5.5
+  - 223.6.6.6
+  
+
+upstream:
+  alidns: 223.5.5.5
+  googledns: dns.google
+  mydns: 8.8.8.8
+
+default-upstream: mydns
+
+route:
+  - mydns(suffix("my.dev", "myssh.com"))
+  - alidns(geosite("aliyun", "alibaba"), suffix("aliyun.com"))
+  - mydns(geosite("github", "google", "openai", "anthropic"))
+  - alidns(geosite("cn"))
