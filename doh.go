@@ -67,7 +67,6 @@ func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
 	resp := new(dns.Msg)
 	resp.SetReply(&req)
 	resp.RecursionAvailable = true
-	resp.Id = req.Id
 	var anySuccess bool
 
 	// 多域名请求处理
@@ -76,7 +75,7 @@ func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
 		singleReq := new(dns.Msg)
 		singleReq.SetQuestion(q.Name, q.Qtype)
 		singleReq.RecursionDesired = req.RecursionDesired
-		reply, err := s.Exchange(singleReq)
+		reply, err := s.exchange(singleReq)
 		if err != nil || reply == nil || reply.Rcode != dns.RcodeSuccess {
 			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
 			continue

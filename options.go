@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+type RewriteOptions struct {
+	Domain       string        `yaml:"domain"`
+	Type         string        `yaml:"type"`
+	Value        string        `yaml:"value"`
+	TTL          time.Duration `yaml:"ttl"`
+	ResponseType string        `yaml:"response"`
+}
+
 type Options struct {
 	LogLevel string `yaml:"log-level"`
 	UDP      string `yaml:"udp"`
@@ -25,7 +33,8 @@ type Options struct {
 	Upstream        map[string]string `yaml:"upstream"`
 	DefaultUpstream string            `yaml:"default-upstream"`
 
-	Route []string `yaml:"route"`
+	Route   []string         `yaml:"route"`
+	Rewrite []RewriteOptions `yaml:"rewrite"`
 }
 
 func (o *Options) LoggerLevel() slog.Level {

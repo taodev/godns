@@ -28,3 +28,9 @@ route:
   - alidns(geosite("aliyun", "alibaba"), suffix("aliyun.com"))
   - mydns(geosite("github", "google", "openai", "anthropic"))
   - alidns(geosite("cn"))
+
+rewrite:
+  - domain: test.example.com
+    type: A
+    value: 127.0.0.1
+    response-type: normal

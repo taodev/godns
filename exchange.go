@@ -1,7 +1,6 @@
 package godns
 
 import (
-	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -9,30 +8,22 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (s *DnsServer) Exchange(r *dns.Msg) (resp *dns.Msg, err error) {
-	if len(r.Question) == 0 {
-		return nil, fmt.Errorf("no question")
-	}
-
-	if len(r.Question) > 1 {
-		slog.Debug("multiple questions in request, only the first will be processed",
-			"count", len(r.Question),
-			"first", r.Question[0].Name,
-			"type", dns.TypeToString[r.Question[0].Qtype],
-		)
-	}
-
+func (s *DnsServer) exchange(r *dns.Msg) (resp *dns.Msg, err error) {
 	// 移除末尾的.
 	q := r.Question[0]
 	domain := strings.ToLower(strings.TrimSuffix(q.Name, "."))
-	// 查询缓存, 单条查询时才缓存
-	if len(r.Question) == 1 {
-		if resp, ok := s.cache.Get(domain, q.Qtype); ok {
-			cacheResp := resp.M.Copy()
-			cacheResp.Id = r.Id
-			slog.Debug("dns hit cache", "domain", q.Name)
-			return cacheResp, nil
-		}
+
+	// 检查是否需要重写
+	if rewrite, ok := s.rewrite(domain, r); ok {
+		return rewrite, nil
+	}
+
+	// 查询缓存
+	if resp, ok := s.cache.Get(domain, q.Qtype); ok {
+		cacheResp := resp.M.Copy()
+		cacheResp.Id = r.Id
+		slog.Debug("dns hit cache", "domain", q.Name)
+		return cacheResp, nil
 	}
 
 	upstream, ok := s.router.Route(domain)
