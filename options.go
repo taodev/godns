@@ -16,6 +16,7 @@ type RewriteOptions struct {
 type Options struct {
 	LogLevel string `yaml:"log-level"`
 	UDP      string `yaml:"udp"`
+	TCP      string `yaml:"tcp"`
 	DoH      string `yaml:"doh"`
 	Cert     string `yaml:"cert"`
 	Key      string `yaml:"key"`
