@@ -27,20 +27,47 @@ func (s *DnsServer) setupUdpServer() error {
 }
 
 func (s *DnsServer) udpHandle(w dns.ResponseWriter, r *dns.Msg) {
-	upstream, resp, ttl, err := s.Exchange(r)
-	if err != nil {
-		slog.Error("dns client exchange failed", "err", err)
+	if len(r.Question) == 0 {
+		dns.HandleFailed(w, r)
 		return
 	}
-	if resp.Rcode != dns.RcodeSuccess {
-		slog.Warn("dns doh response failed", "rcode", resp.Rcode)
+
+	resp := new(dns.Msg)
+	resp.SetReply(r)
+	resp.RecursionAvailable = true
+	resp.Id = r.Id
+	var anySuccess bool
+
+	if len(r.Question) > 1 {
+		slog.Warn("dns udp request with multiple questions", "questions", len(r.Question))
+	}
+
+	// 多域名请求处理
+	for _, q := range r.Question {
+		// 构造单独请求
+		singleReq := new(dns.Msg)
+		singleReq.SetQuestion(q.Name, q.Qtype)
+		singleReq.RecursionDesired = r.RecursionDesired
+		reply, err := s.Exchange(singleReq)
+		if err != nil || reply == nil || reply.Rcode != dns.RcodeSuccess {
+			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
+			continue
+		}
+		if len(reply.Answer) > 0 || len(reply.Ns) > 0 || len(reply.Extra) > 0 {
+			anySuccess = true
+		}
+
+		resp.Answer = append(resp.Answer, reply.Answer...)
+		resp.Ns = append(resp.Ns, reply.Ns...)
+		resp.Extra = append(resp.Extra, reply.Extra...)
+	}
+	if anySuccess {
+		resp.Rcode = dns.RcodeSuccess
+	} else {
+		resp.Rcode = dns.RcodeServerFailure
 	}
 
 	if err := w.WriteMsg(resp); err != nil {
 		slog.Error("dns response write failed", "err", err)
-	}
-
-	for _, q := range resp.Question {
-		slog.Info("dns", "rcode", resp.Rcode, "ttl", ttl, "upstream", upstream, "question", q.Name)
 	}
 }

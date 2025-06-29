@@ -59,11 +59,40 @@ func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
 	if req.Rcode != dns.RcodeSuccess {
 		slog.Warn("dns doh response failed", "rcode", req.Rcode)
 	}
-
-	upstream, resp, ttl, err := s.Exchange(&req)
-	if err != nil {
-		http.Error(w, "exchange failed", http.StatusInternalServerError)
+	if len(req.Question) == 0 {
+		http.Error(w, "no question", http.StatusBadRequest)
 		return
+	}
+
+	resp := new(dns.Msg)
+	resp.SetReply(&req)
+	resp.RecursionAvailable = true
+	resp.Id = req.Id
+	var anySuccess bool
+
+	// 多域名请求处理
+	for _, q := range req.Question {
+		// 构造单独请求
+		singleReq := new(dns.Msg)
+		singleReq.SetQuestion(q.Name, q.Qtype)
+		singleReq.RecursionDesired = req.RecursionDesired
+		reply, err := s.Exchange(singleReq)
+		if err != nil || reply == nil || reply.Rcode != dns.RcodeSuccess {
+			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
+			continue
+		}
+		if len(reply.Answer) > 0 || len(reply.Ns) > 0 || len(reply.Extra) > 0 {
+			anySuccess = true
+		}
+
+		resp.Answer = append(resp.Answer, reply.Answer...)
+		resp.Ns = append(resp.Ns, reply.Ns...)
+		resp.Extra = append(resp.Extra, reply.Extra...)
+	}
+	if anySuccess {
+		resp.Rcode = dns.RcodeSuccess
+	} else {
+		resp.Rcode = dns.RcodeServerFailure
 	}
 
 	out, err := resp.Pack()
@@ -73,9 +102,8 @@ func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/dns-message")
-	w.Write(out)
-
-	for _, q := range resp.Question {
-		slog.Info("dns", "rcode", resp.Rcode, "ttl", ttl, "upstream", upstream, "question", q.Name)
+	if _, err = w.Write(out); err != nil {
+		slog.Error("dns response write failed", "err", err)
+		return
 	}
 }
