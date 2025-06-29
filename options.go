@@ -20,6 +20,8 @@ type Options struct {
 	Cert     string `yaml:"cert"`
 	Key      string `yaml:"key"`
 	GeoSite  string `yaml:"geosite"`
+	// 是否阻止 AAAA 查询（IPv6）
+	BlockAAAA bool `yaml:"block-aaaa"`
 
 	BootstrapDNS []string `yaml:"bootstrap-dns"`
 

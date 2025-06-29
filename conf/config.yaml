@@ -5,6 +5,8 @@ doh: :443
 cert: conf/cert.pem
 key: conf/key.pem
 geosite: conf/geosite.dat
+# 是否阻止 AAAA 查询（IPv6）
+block-aaaa: true
 
 bootstrap-dns:
   - 223.5.5.5

@@ -15,6 +15,16 @@ func (s *DnsServer) exchange(ri *RequestInfo, r *dns.Msg) (*dns.Msg, time.Durati
 	q := r.Question[0]
 	domain := strings.ToLower(strings.TrimSuffix(q.Name, "."))
 
+	// 阻止 AAAA 查询（IPv6）
+	if s.Options.BlockAAAA && q.Qtype == dns.TypeAAAA {
+		resp := new(dns.Msg)
+		resp.SetReply(r)
+		resp.RecursionAvailable = true
+		resp.Answer = nil // 不返回任何 AAAA 记录
+		slog.Info("blocked AAAA query", "domain", domain)
+		return resp, time.Since(now), nil
+	}
+
 	// 检查是否需要重写
 	if rewrite, ok := s.rewrite(domain, r); ok {
 		updateMsgTTL(rewrite, s.Options.Cache.MinTTL, s.Options.Cache.MaxTTL)
