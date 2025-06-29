@@ -11,7 +11,7 @@ LABEL maintainer="taodev <taodev@gmail.com>"
 WORKDIR /app
 COPY --from=builder /app/godns /usr/local/bin/godns
 COPY ./conf/geosite.dat /etc/godns/geosite.dat
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache bash tzdata ca-certificates
 EXPOSE 53/udp
 EXPOSE 443/tcp
-ENTRYPOINT ["gotun"]
+ENTRYPOINT ["godns"]
