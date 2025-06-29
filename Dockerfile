@@ -13,5 +13,6 @@ COPY --from=builder /app/godns /usr/local/bin/godns
 COPY --from=builder /var/lib/godns/geosite.dat /var/lib/godns/geosite.dat
 RUN apk add --no-cache bash tzdata ca-certificates
 EXPOSE 53/udp
+EXPOSE 80/tcp
 EXPOSE 443/tcp
 ENTRYPOINT ["godns"]
