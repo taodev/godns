@@ -2,8 +2,8 @@ log-level: debug
 
 udp: :55
 doh: :443
-cert: conf/mydev.run.pem
-key: conf/mydev.run-key.pem
+cert: conf/cert.pem
+key: conf/key.pem
 
 bootstrap-dns:
   - 223.5.5.5
