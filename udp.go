@@ -35,11 +35,8 @@ func (s *DnsServer) udpHandle(w dns.ResponseWriter, r *dns.Msg) {
 	resp := new(dns.Msg)
 	resp.SetReply(r)
 	resp.RecursionAvailable = true
+	ri := NewRequestInfoFromUDP(w.RemoteAddr().String())
 	var anySuccess bool
-
-	if len(r.Question) > 1 {
-		slog.Warn("dns udp request with multiple questions", "questions", len(r.Question))
-	}
 
 	// 多域名请求处理
 	for _, q := range r.Question {
@@ -47,7 +44,7 @@ func (s *DnsServer) udpHandle(w dns.ResponseWriter, r *dns.Msg) {
 		singleReq := new(dns.Msg)
 		singleReq.SetQuestion(q.Name, q.Qtype)
 		singleReq.RecursionDesired = r.RecursionDesired
-		reply, err := s.exchange(singleReq)
+		reply, _, err := s.exchange(ri, singleReq)
 		if err != nil || reply == nil || reply.Rcode != dns.RcodeSuccess {
 			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
 			continue

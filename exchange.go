@@ -3,26 +3,30 @@ package godns
 import (
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/miekg/dns"
 )
 
-func (s *DnsServer) exchange(r *dns.Msg) (resp *dns.Msg, err error) {
+func (s *DnsServer) exchange(ri *RequestInfo, r *dns.Msg) (*dns.Msg, time.Duration, error) {
+	now := time.Now()
+
 	// 移除末尾的.
 	q := r.Question[0]
 	domain := strings.ToLower(strings.TrimSuffix(q.Name, "."))
 
 	// 检查是否需要重写
 	if rewrite, ok := s.rewrite(domain, r); ok {
-		return rewrite, nil
+		updateMsgTTL(rewrite, s.Options.Cache.MinTTL, s.Options.Cache.MaxTTL)
+		rtt := time.Since(now)
+		slog.Info("request", "upstream", "rewrite", "domain", domain, "qtype", dns.TypeToString[q.Qtype], "inbound", ri.Inbound, "rtt", rtt, "client", ri.IP)
+		return rewrite, rtt, nil
 	}
 
 	// 查询缓存
 	if resp, ok := s.cache.Get(domain, q.Qtype); ok {
 		cacheResp := resp.M.Copy()
 		cacheResp.Id = r.Id
-		slog.Debug("dns hit cache", "domain", q.Name)
-
 		if resp.IsExpired() {
 			// 异步刷新缓存
 			go func(domain string, qtype uint16, question dns.Question) {
@@ -44,24 +48,25 @@ func (s *DnsServer) exchange(r *dns.Msg) (resp *dns.Msg, err error) {
 				slog.Info("dns async refresh", "rcode", refreshResp.Rcode, "rtt", rtt, "upstream", name, "question", question.Name)
 			}(domain, q.Qtype, q)
 		}
-
-		return cacheResp, nil
+		rtt := time.Since(now)
+		slog.Info("request", "upstream", "cache", "domain", domain, "qtype", dns.TypeToString[q.Qtype], "inbound", ri.Inbound, "rtt", rtt, "client", ri.IP)
+		return cacheResp, rtt, nil
 	}
 
 	name := s.router.Route(domain)
 	resp, rtt, err := s.upstream.Exchange(name, r)
 	if err != nil {
 		slog.Warn("dns upstream exchange error", "error", err, "upstream", name, "domain", q.Name, "qtype", dns.TypeToString[q.Qtype])
-		return nil, err
+		return nil, time.Since(now), err
 	}
 	if resp.Rcode != dns.RcodeSuccess {
 		slog.Warn("dns upstream exchange failed", "rcode", resp.Rcode, "upstream", name, "domain", q.Name, "qtype", dns.TypeToString[q.Qtype])
-		return resp, nil
+		return resp, time.Since(now), nil
 	}
 
 	updateMsgTTL(resp, s.Options.Cache.MinTTL, s.Options.Cache.MaxTTL)
 	s.cache.Set(domain, q.Qtype, resp.Copy())
-	slog.Info("dns", "rcode", resp.Rcode, "rtt", rtt, "upstream", name, "question", q.Name)
+	slog.Info("request", "upstream", name, "domain", domain, "qtype", dns.TypeToString[q.Qtype], "inbound", ri.Inbound, "rtt", rtt, "client", ri.IP)
 
-	return resp, nil
+	return resp, time.Since(now), nil
 }
