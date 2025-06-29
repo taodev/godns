@@ -45,7 +45,7 @@ func (s *DnsServer) udpHandle(w dns.ResponseWriter, r *dns.Msg) {
 		singleReq.SetQuestion(q.Name, q.Qtype)
 		singleReq.RecursionDesired = r.RecursionDesired
 		reply, _, err := s.exchange(ri, singleReq)
-		if err != nil || reply == nil || reply.Rcode != dns.RcodeSuccess {
+		if err != nil {
 			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
 			continue
 		}

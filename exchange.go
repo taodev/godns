@@ -20,8 +20,9 @@ func (s *DnsServer) exchange(ri *RequestInfo, r *dns.Msg) (*dns.Msg, time.Durati
 		resp := new(dns.Msg)
 		resp.SetReply(r)
 		resp.RecursionAvailable = true
-		resp.Answer = nil // 不返回任何 AAAA 记录
-		slog.Info("blocked AAAA query", "domain", domain)
+		resp.Rcode = dns.RcodeNameError // 或 NOERROR + 空答案
+		resp.Answer = nil               // 不返回任何 AAAA 记录
+		slog.Debug("blocked AAAA query", "domain", domain, "client", ri.IP)
 		return resp, time.Since(now), nil
 	}
 

@@ -77,7 +77,7 @@ func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
 		singleReq.SetQuestion(q.Name, q.Qtype)
 		singleReq.RecursionDesired = req.RecursionDesired
 		reply, _, err := s.exchange(ri, singleReq)
-		if err != nil || reply == nil || reply.Rcode != dns.RcodeSuccess {
+		if err != nil {
 			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
 			continue
 		}
