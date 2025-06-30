@@ -84,35 +84,11 @@ func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := new(dns.Msg)
-	resp.SetReply(&req)
-	resp.RecursionAvailable = true
 	ri := NewRequestInfoFromHTTP(r)
-	var anySuccess bool
-
-	// 多域名请求处理
-	for _, q := range req.Question {
-		// 构造单独请求
-		singleReq := new(dns.Msg)
-		singleReq.SetQuestion(q.Name, q.Qtype)
-		singleReq.RecursionDesired = req.RecursionDesired
-		reply, _, err := s.exchange(ri, singleReq)
-		if err != nil {
-			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
-			continue
-		}
-		if len(reply.Answer) > 0 || len(reply.Ns) > 0 || len(reply.Extra) > 0 {
-			anySuccess = true
-		}
-
-		resp.Answer = append(resp.Answer, reply.Answer...)
-		resp.Ns = append(resp.Ns, reply.Ns...)
-		resp.Extra = append(resp.Extra, reply.Extra...)
-	}
-	if anySuccess {
-		resp.Rcode = dns.RcodeSuccess
-	} else {
-		resp.Rcode = dns.RcodeServerFailure
+	resp, _, err := s.exchange(ri, &req)
+	if err != nil {
+		http.Error(w, "exchange failed: "+err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	out, err := resp.Pack()

@@ -1,6 +1,7 @@
 package godns
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -8,7 +9,45 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (s *DnsServer) exchange(ri *RequestInfo, r *dns.Msg) (*dns.Msg, time.Duration, error) {
+func (s *DnsServer) exchange(ri *RequestInfo, in *dns.Msg) (*dns.Msg, time.Duration, error) {
+	now := time.Now()
+	resp := new(dns.Msg)
+	resp.SetReply(in)
+	resp.RecursionAvailable = true
+	var anySuccess bool
+
+	// 多域名请求处理
+	for _, q := range in.Question {
+		// 构造单独请求
+		singleReq := new(dns.Msg)
+		singleReq.SetQuestion(q.Name, q.Qtype)
+		singleReq.RecursionDesired = in.RecursionDesired
+		reply, _, err := s.exchangeSingle(ri, singleReq)
+		if err != nil {
+			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
+			continue
+		}
+		if len(reply.Answer) > 0 || len(reply.Ns) > 0 || len(reply.Extra) > 0 {
+			anySuccess = true
+		}
+
+		resp.Answer = append(resp.Answer, reply.Answer...)
+		resp.Ns = append(resp.Ns, reply.Ns...)
+		resp.Extra = append(resp.Extra, reply.Extra...)
+	}
+
+	var err error
+	if anySuccess {
+		resp.Rcode = dns.RcodeSuccess
+	} else {
+		resp.Rcode = dns.RcodeServerFailure
+		err = fmt.Errorf("no valid answers for any question")
+	}
+
+	return resp, time.Since(now), err
+}
+
+func (s *DnsServer) exchangeSingle(ri *RequestInfo, r *dns.Msg) (*dns.Msg, time.Duration, error) {
 	now := time.Now()
 
 	// 移除末尾的.
