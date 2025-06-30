@@ -51,8 +51,7 @@ func (s *DnsServer) handle(inbound string) func(w dns.ResponseWriter, r *dns.Msg
 			dns.HandleFailed(w, r)
 			return
 		}
-		ri := NewRequestInfoFromUDP(w.RemoteAddr().String())
-		ri.Inbound = inbound
+		ri := NewRequestInfoFromAddr(w.RemoteAddr().String(), inbound)
 		resp, _, err := s.exchange(ri, r)
 		if err != nil {
 			dns.HandleFailed(w, r)

@@ -1,6 +1,9 @@
 log-level: debug
 
 udp: :55
+stcp:
+  addr: :553
+  password: 123456
 doh: :443
 cert: conf/cert.pem
 key: conf/key.pem

@@ -16,9 +16,10 @@ type DnsServer struct {
 	Options *Options
 	logger  *slog.Logger
 
-	udpServer *dns.Server
-	tcpServer *dns.Server
-	dohServer *http.Server
+	udpServer  *dns.Server
+	tcpServer  *dns.Server
+	stcpServer *StcpServer
+	dohServer  *http.Server
 
 	upstream *UpstreamManager
 
@@ -62,7 +63,7 @@ func (s *DnsServer) init() (err error) {
 		return err
 	}
 
-	s.upstream = NewUpstreamManager(opts.Upstream)
+	s.upstream = NewUpstreamManager(opts)
 	s.router, err = NewRouter(opts.Route, opts.DefaultUpstream)
 	if err != nil {
 		return err
@@ -84,6 +85,13 @@ func (s *DnsServer) init() (err error) {
 	if len(opts.TCP) > 0 {
 		// 初始化 tcp server
 		if err := s.setupTcpServer(); err != nil {
+			return err
+		}
+	}
+
+	if len(opts.STCP.Addr) > 0 {
+		// 初始化 stcp server
+		if err := s.setupStcpServer(); err != nil {
 			return err
 		}
 	}
@@ -111,6 +119,10 @@ func (s *DnsServer) Serve() error {
 
 	if s.tcpServer != nil {
 		s.tcpServer.Shutdown()
+	}
+
+	if s.stcpServer != nil {
+		s.stcpServer.Shutdown()
 	}
 
 	if s.dohServer != nil {

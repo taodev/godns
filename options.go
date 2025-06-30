@@ -17,10 +17,16 @@ type Options struct {
 	LogLevel string `yaml:"log-level"`
 	UDP      string `yaml:"udp"`
 	TCP      string `yaml:"tcp"`
-	DoH      string `yaml:"doh"`
-	Cert     string `yaml:"cert"`
-	Key      string `yaml:"key"`
-	GeoSite  string `yaml:"geosite"`
+
+	STCP struct {
+		Addr     string `yaml:"addr"`
+		Password string `yaml:"password"`
+	} `yaml:"stcp"`
+
+	DoH     string `yaml:"doh"`
+	Cert    string `yaml:"cert"`
+	Key     string `yaml:"key"`
+	GeoSite string `yaml:"geosite"`
 	// 是否阻止 AAAA 查询（IPv6）
 	BlockAAAA bool `yaml:"block-aaaa"`
 

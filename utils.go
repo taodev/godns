@@ -14,12 +14,12 @@ type RequestInfo struct {
 	Inbound string
 }
 
-func NewRequestInfoFromUDP(remoteAddr string) (ri *RequestInfo) {
+func NewRequestInfoFromAddr(remoteAddr string, inbound string) (ri *RequestInfo) {
 	ri = new(RequestInfo)
 	if addr, err := netip.ParseAddrPort(remoteAddr); err == nil {
 		ri.IP = addr.Addr().String()
 	}
-	ri.Inbound = "udp"
+	ri.Inbound = inbound
 	return
 }
 

@@ -15,6 +15,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/pkg/bootstrap"
+	"github.com/taodev/stcp"
 )
 
 type Upstream interface {
@@ -23,10 +24,11 @@ type Upstream interface {
 }
 
 type UdpClient struct {
-	name string
-	Addr string
-	Host string
-	Port string
+	name   string
+	Scheme string
+	Addr   string
+	Host   string
+	Port   string
 }
 
 func (c UdpClient) Name() string {
@@ -35,7 +37,7 @@ func (c UdpClient) Name() string {
 
 func (c *UdpClient) Exchange(in *dns.Msg) (*dns.Msg, time.Duration, error) {
 	client := new(dns.Client)
-	client.Net = "udp"
+	client.Net = c.Scheme
 	return client.Exchange(in, c.Addr)
 }
 
@@ -95,6 +97,41 @@ func (c *DoHClient) Exchange(in *dns.Msg) (*dns.Msg, time.Duration, error) {
 	return &reply, time.Since(now), nil
 }
 
+type StcpClient struct {
+	name     string
+	addr     string
+	password string
+}
+
+func (c StcpClient) Name() string {
+	return c.name
+}
+
+func (c *StcpClient) Exchange(in *dns.Msg) (*dns.Msg, time.Duration, error) {
+	now := time.Now()
+	client, err := stcp.Dial("tcp", c.addr, &stcp.Config{
+		Password: c.password,
+	})
+	if err != nil {
+		slog.Warn("dns stcp dial failed", "error", err)
+		return nil, time.Since(now), err
+	}
+	defer client.Close()
+	if err := stcpWrite(client, in); err != nil {
+		slog.Warn("dns stcp write failed", "error", err)
+		return nil, time.Since(now), err
+	}
+
+	resp, err := stcpRead(client)
+	if err != nil {
+		slog.Warn("dns stcp read failed", "error", err)
+		return nil, time.Since(now), err
+	}
+	// 修复响应 ID
+	resp.Id = in.Id
+	return resp, time.Since(now), nil
+}
+
 type UpstreamManager struct {
 	upstreams map[string]Upstream
 	locker    sync.RWMutex
@@ -126,15 +163,26 @@ func (m *UpstreamManager) Add(name string, addr string) {
 	}
 
 	switch u.Scheme {
-	case "udp":
+	case "udp", "tcp":
 		if port == "" {
 			port = "53"
 		}
 		m.upstreams[name] = &UdpClient{
-			name: name,
-			Addr: net.JoinHostPort(ip, port),
-			Host: host,
-			Port: port,
+			name:   name,
+			Addr:   net.JoinHostPort(ip, port),
+			Host:   host,
+			Port:   port,
+			Scheme: u.Scheme,
+		}
+	case "stcp":
+		if port == "" {
+			port = "553"
+		}
+		slog.Debug("add stcp upstream", "name", name, "addr", net.JoinHostPort(ip, port))
+		m.upstreams[name] = &StcpClient{
+			name:     name,
+			addr:     net.JoinHostPort(ip, port),
+			password: u.User.Username(),
 		}
 	case "https":
 		if port == "" {
@@ -178,12 +226,12 @@ func (m *UpstreamManager) Exchange(name string, in *dns.Msg) (*dns.Msg, time.Dur
 	return upstream.Exchange(in)
 }
 
-func NewUpstreamManager(opts map[string]string) *UpstreamManager {
+func NewUpstreamManager(opts *Options) *UpstreamManager {
 	m := &UpstreamManager{
 		upstreams: make(map[string]Upstream),
 	}
 
-	for name, addr := range opts {
+	for name, addr := range opts.Upstream {
 		m.Add(name, addr)
 	}
 
