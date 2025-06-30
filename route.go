@@ -2,6 +2,7 @@ package godns
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/taodev/pkg/geodb"
 )
@@ -12,6 +13,7 @@ type Router struct {
 }
 
 func (r *Router) Route(domain string) (upstream string) {
+	domain = strings.ToLower(strings.TrimSuffix(domain, "."))
 	for _, rule := range r.Rules {
 		if upstream, ok := rule.Match(&geodb.Context{Domain: domain}); ok {
 			return upstream

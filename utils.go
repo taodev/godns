@@ -82,3 +82,15 @@ func updateMsgTTL(msg *dns.Msg, minTTL, maxTTL uint32) {
 		}
 	}
 }
+
+func shouldRecurse(msg *dns.Msg, qtype uint16) (recurse bool) {
+	for _, ans := range msg.Answer {
+		if ans.Header().Rrtype == qtype {
+			return false // 找到目标记录，停止
+		}
+		if ans.Header().Rrtype == dns.TypeCNAME {
+			recurse = true
+		}
+	}
+	return recurse // 既无目标类型，也无 CNAME，可能 NXDOMAIN 或空结果
+}
