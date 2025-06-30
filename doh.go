@@ -71,35 +71,35 @@ func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	w.Header().Set("Content-Type", "application/dns-message")
 	var req dns.Msg
 	if err := req.Unpack(body); err != nil {
 		http.Error(w, "unpack failed", http.StatusBadRequest)
 		return
 	}
-	if req.Rcode != dns.RcodeSuccess {
-		slog.Warn("dns doh response failed", "rcode", req.Rcode)
-	}
-	if len(req.Question) == 0 {
-		http.Error(w, "no question", http.StatusBadRequest)
-		return
-	}
-
 	ri := NewRequestInfoFromHTTP(r)
 	resp, _, err := s.exchange(ri, &req)
+	var reply []byte
 	if err != nil {
-		http.Error(w, "exchange failed: "+err.Error(), http.StatusBadRequest)
+		m := new(dns.Msg)
+		m.SetRcode(&req, dns.RcodeServerFailure)
+		if reply, err = m.Pack(); err != nil {
+			slog.Warn("DoH handle failed pack response", "err", err)
+		}
+		if _, err = w.Write(reply); err != nil {
+			slog.Debug("DoH response write failed", "err", err)
+		}
 		return
 	}
 
-	out, err := resp.Pack()
+	reply, err = resp.Pack()
 	if err != nil {
 		http.Error(w, "pack failed", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/dns-message")
-	if _, err = w.Write(out); err != nil {
-		slog.Error("dns response write failed", "err", err)
+	if _, err = w.Write(reply); err != nil {
+		slog.Debug("DoH response write failed", "err", err)
 		return
 	}
 }

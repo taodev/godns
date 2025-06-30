@@ -56,13 +56,15 @@ func (c *DoHClient) Exchange(in *dns.Msg) (*dns.Msg, time.Duration, error) {
 	now := time.Now()
 	packed, err := in.Pack()
 	if err != nil {
+		resp := new(dns.Msg)
+		resp.SetReply(in)
+		resp.Rcode = dns.RcodeFormatError
 		slog.Warn("dns msg pack failed", "error", err)
-		return nil, time.Since(now), err
+		return resp, time.Since(now), nil
 	}
 
 	req, err := http.NewRequest(http.MethodPost, c.Addr, bytes.NewReader(packed))
 	if err != nil {
-		slog.Warn("dns doh new request failed", "url", c.Addr, "error", err)
 		return nil, time.Since(now), err
 	}
 	req.Header.Set("Content-Type", "application/dns-message")
@@ -76,25 +78,24 @@ func (c *DoHClient) Exchange(in *dns.Msg) (*dns.Msg, time.Duration, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		slog.Warn("dns doh do request failed", "url", c.Addr, "error", err)
 		return nil, time.Since(now), err
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		slog.Warn("dns doh read body failed", "error", err)
 		return nil, time.Since(now), err
 	}
 
-	var reply dns.Msg
+	reply := new(dns.Msg)
 	if err := reply.Unpack(respBody); err != nil {
-		slog.Warn("dns msg unpack failed", "error", err)
-		return nil, time.Since(now), err
+		reply.SetReply(in)
+		reply.Rcode = dns.RcodeServerFailure
+		return reply, time.Since(now), nil
 	}
 	// 修复响应 ID
 	reply.Id = in.Id
-	return &reply, time.Since(now), nil
+	return reply, time.Since(now), nil
 }
 
 type StcpClient struct {
@@ -113,18 +114,15 @@ func (c *StcpClient) Exchange(in *dns.Msg) (*dns.Msg, time.Duration, error) {
 		Password: c.password,
 	})
 	if err != nil {
-		slog.Warn("dns stcp dial failed", "error", err)
 		return nil, time.Since(now), err
 	}
 	defer client.Close()
 	if err := stcpWrite(client, in); err != nil {
-		slog.Warn("dns stcp write failed", "error", err)
 		return nil, time.Since(now), err
 	}
 
 	resp, err := stcpRead(client)
 	if err != nil {
-		slog.Warn("dns stcp read failed", "error", err)
 		return nil, time.Since(now), err
 	}
 	// 修复响应 ID

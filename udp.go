@@ -47,10 +47,6 @@ func (s *DnsServer) setupTcpServer() error {
 
 func (s *DnsServer) handle(inbound string) func(w dns.ResponseWriter, r *dns.Msg) {
 	return func(w dns.ResponseWriter, r *dns.Msg) {
-		if len(r.Question) == 0 {
-			dns.HandleFailed(w, r)
-			return
-		}
 		ri := NewRequestInfoFromAddr(w.RemoteAddr().String(), inbound)
 		resp, _, err := s.exchange(ri, r)
 		if err != nil {
@@ -58,7 +54,7 @@ func (s *DnsServer) handle(inbound string) func(w dns.ResponseWriter, r *dns.Msg
 			return
 		}
 		if err := w.WriteMsg(resp); err != nil {
-			slog.Error("dns response write failed", "err", err)
+			slog.Debug("dns response write failed", "client", w.RemoteAddr().String(), "err", err)
 		}
 	}
 }

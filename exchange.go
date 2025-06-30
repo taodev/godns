@@ -13,30 +13,74 @@ func (s *DnsServer) exchange(ri *RequestInfo, in *dns.Msg) (*dns.Msg, time.Durat
 	resp.SetReply(in)
 	resp.Authoritative = true
 	resp.RecursionAvailable = true
+
+	// 空请求
+	if len(in.Question) == 0 {
+		resp.Rcode = dns.RcodeFormatError
+		return resp, time.Since(now), nil
+	}
+
 	resp.Rcode = dns.RcodeSuccess
 
-	// 多域名请求处理
-	for _, q := range in.Question {
-		// 传入初始域名，方便分流
-		reply, _, err := s.exchangeSingle(ri, q.Qtype, q.Name)
+	// 判断是否单条请求(大部分都是单条请求)
+	if len(in.Question) == 1 {
+		q := in.Question[0]
+		// 单条请求直接处理
+		reply, _, err := s.exchangeSingle(ri, in.Question[0].Qtype, in.Question[0].Name)
 		if err != nil {
-			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
-			continue
+			slog.Debug("dns client exchange failed", "err", err, "question", in.Question[0].Name)
+			return resp, time.Since(now), err
 		}
-
 		// 递归查询结果判断
 		if shouldRecurse(reply, q.Qtype) {
-			slog.Warn("recurse query failed", "domain", q.Name, "qtype", dns.TypeToString[q.Qtype])
+			slog.Debug("recurse query failed", "domain", q.Name, "qtype", dns.TypeToString[q.Qtype])
 		}
-
 		for _, rr := range reply.Answer {
 			// 判断是否禁止 AAAA
 			if !s.Options.BlockAAAA || rr.Header().Rrtype != dns.TypeAAAA {
 				resp.Answer = append(resp.Answer, rr)
 			}
 		}
-		resp.Ns = append(resp.Ns, reply.Ns...)
-		resp.Extra = append(resp.Extra, reply.Extra...)
+		resp.Ns = reply.Ns
+		resp.Extra = reply.Extra
+		resp.Rcode = reply.Rcode
+	} else {
+		// 默认 Rcode（如果全部失败）
+		resp.Rcode = dns.RcodeServerFailure
+		// 多域名请求处理
+		for _, q := range in.Question {
+			// 传入初始域名，方便分流
+			reply, _, err := s.exchangeSingle(ri, q.Qtype, q.Name)
+			if err != nil {
+				slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
+				continue
+			}
+
+			// 合并 Rcode 优先级（NOERROR > NXDOMAIN > SERVFAIL）
+			switch reply.Rcode {
+			case dns.RcodeSuccess:
+				resp.Rcode = dns.RcodeSuccess
+			case dns.RcodeNameError:
+				if resp.Rcode != dns.RcodeSuccess {
+					resp.Rcode = dns.RcodeNameError
+				}
+				// 其他错误维持 SERVFAIL
+			}
+
+			// 递归查询结果判断
+			if shouldRecurse(reply, q.Qtype) {
+				slog.Debug("recurse query failed", "domain", q.Name, "qtype", dns.TypeToString[q.Qtype])
+			}
+
+			for _, rr := range reply.Answer {
+				// 判断是否禁止 AAAA
+				if !s.Options.BlockAAAA || rr.Header().Rrtype != dns.TypeAAAA {
+					resp.Answer = append(resp.Answer, rr)
+				}
+			}
+			resp.Ns = append(resp.Ns, reply.Ns...)
+			resp.Extra = append(resp.Extra, reply.Extra...)
+		}
 	}
 
 	return resp, time.Since(now), nil

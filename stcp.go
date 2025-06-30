@@ -32,8 +32,8 @@ func (svr *StcpServer) ListenAndServe() (err error) {
 			break
 		}
 		go func(conn net.Conn) {
+			defer conn.Close()
 			if err = conn.(*stcp.Conn).Handshake(); err != nil {
-				conn.Close()
 				return
 			}
 			if svr.handler != nil {
@@ -72,11 +72,11 @@ func stcpHandleFailed(w io.Writer, r *dns.Msg) {
 	// does not matter if this write fails
 	reply, err := m.Pack()
 	if err != nil {
-		slog.Error("stcp handle failed pack response", "err", err)
+		slog.Warn("stcp handle failed pack response", "err", err)
 		return
 	}
 	if _, err := w.Write(reply); err != nil {
-		slog.Error("stcp handle failed write response", "err", err)
+		slog.Debug("stcp handle failed write response", "err", err)
 		return
 	}
 }
@@ -100,10 +100,6 @@ func stcpRead(conn net.Conn) (m *dns.Msg, err error) {
 		err = fmt.Errorf("stcp unpack message failed: %w", err)
 		return
 	}
-	if len(m.Question) == 0 {
-		err = fmt.Errorf("stcp message question is empty")
-		return
-	}
 	return
 }
 
@@ -123,8 +119,6 @@ func stcpWrite(conn net.Conn, m *dns.Msg) error {
 }
 
 func (svr *DnsServer) handleStcp(conn net.Conn) {
-	defer conn.Close()
-
 	m, err := stcpRead(conn)
 	if err != nil {
 		stcpHandleFailed(conn, m)
@@ -137,7 +131,7 @@ func (svr *DnsServer) handleStcp(conn net.Conn) {
 		return
 	}
 	if err := stcpWrite(conn, resp); err != nil {
-		stcpHandleFailed(conn, m)
+		slog.Debug("stcp write response failed", "client", conn.RemoteAddr().String(), "err", err)
 		return
 	}
 }
