@@ -1,7 +1,6 @@
 package godns
 
 import (
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -12,8 +11,9 @@ func (s *DnsServer) exchange(ri *RequestInfo, in *dns.Msg) (*dns.Msg, time.Durat
 	now := time.Now()
 	resp := new(dns.Msg)
 	resp.SetReply(in)
+	resp.Authoritative = true
 	resp.RecursionAvailable = true
-	var anySuccess bool
+	resp.Rcode = dns.RcodeSuccess
 
 	// 多域名请求处理
 	for _, q := range in.Question {
@@ -23,45 +23,33 @@ func (s *DnsServer) exchange(ri *RequestInfo, in *dns.Msg) (*dns.Msg, time.Durat
 			slog.Warn("dns client exchange failed", "err", err, "question", q.Name)
 			continue
 		}
-		if len(reply.Answer) > 0 || len(reply.Ns) > 0 || len(reply.Extra) > 0 {
-			anySuccess = true
-		}
 
 		// 递归查询结果判断
 		if shouldRecurse(reply, q.Qtype) {
 			slog.Warn("recurse query failed", "domain", q.Name, "qtype", dns.TypeToString[q.Qtype])
 		}
 
-		resp.Answer = append(resp.Answer, reply.Answer...)
+		for _, rr := range reply.Answer {
+			// 判断是否禁止 AAAA
+			if !s.Options.BlockAAAA || rr.Header().Rrtype != dns.TypeAAAA {
+				resp.Answer = append(resp.Answer, rr)
+			}
+		}
 		resp.Ns = append(resp.Ns, reply.Ns...)
 		resp.Extra = append(resp.Extra, reply.Extra...)
 	}
 
-	var err error
-	if anySuccess {
-		resp.Rcode = dns.RcodeSuccess
-	} else {
-		resp.Rcode = dns.RcodeServerFailure
-		err = fmt.Errorf("no valid answers for any question")
-	}
-
-	return resp, time.Since(now), err
+	return resp, time.Since(now), nil
 }
 
 func (s *DnsServer) exchangeSingle(ri *RequestInfo, qtype uint16, domain string) (*dns.Msg, time.Duration, error) {
 	now := time.Now()
 
-	// // 移除末尾的.
-	// q := r.Question[0]
-	// domain := strings.ToLower(strings.TrimSuffix(q.Name, "."))
-
 	// 阻止 AAAA 查询（IPv6）
 	if s.Options.BlockAAAA && qtype == dns.TypeAAAA {
 		resp := new(dns.Msg)
-		// resp.SetReply(r)
-		// resp.RecursionAvailable = true
-		resp.Rcode = dns.RcodeNameError // 或 NOERROR + 空答案
-		resp.Answer = nil               // 不返回任何 AAAA 记录
+		// resp.Rcode = dns.RcodeNameError // 或 NOERROR + 空答案
+		resp.Answer = nil // 不返回任何 AAAA 记录
 		slog.Debug("blocked AAAA query", "domain", domain, "client", ri.IP)
 		return resp, time.Since(now), nil
 	}
