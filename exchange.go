@@ -88,24 +88,25 @@ func (s *DnsServer) exchange(ri *RequestInfo, in *dns.Msg) (*dns.Msg, time.Durat
 
 func (s *DnsServer) exchangeSingle(ri *RequestInfo, qtype uint16, domain string) (*dns.Msg, time.Duration, error) {
 	now := time.Now()
+	qtypeString := dns.TypeToString[qtype]
 
 	// 处理客户端反查
 	if qtype == dns.TypePTR {
 		resp := new(dns.Msg)
 		resp.Rcode = dns.RcodeSuccess
-		return resp, time.Since(now), nil
+		rtt := time.Since(now)
+		slog.Info("request", "upstream", "rewrite", "domain", domain, "qtype", qtypeString, "inbound", ri.Inbound, "rtt", rtt, "client", ri.IP)
+		return resp, rtt, nil
 	}
 
 	// 阻止 AAAA 查询（IPv6）
 	if s.Options.BlockAAAA && qtype == dns.TypeAAAA {
 		resp := new(dns.Msg)
-		// resp.Rcode = dns.RcodeNameError // 或 NOERROR + 空答案
 		resp.Answer = nil // 不返回任何 AAAA 记录
 		slog.Debug("blocked AAAA query", "domain", domain, "client", ri.IP)
 		return resp, time.Since(now), nil
 	}
 
-	qtypeString := dns.TypeToString[qtype]
 	// 检查是否需要重写
 	if rewrite, ok := s.rewrite(domain, qtype); ok {
 		updateMsgTTL(rewrite, s.Options.Cache.MinTTL, s.Options.Cache.MaxTTL)
