@@ -98,7 +98,7 @@ jobs:
           elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
             TAG_NAME="develop"
             RELEASE_NAME="develop"
-            LATEST_FLAG=""
+            LATEST_FLAG="--latest=false"
             # 覆盖旧版本：先删除已有的develop发布（忽略不存在的错误）
             gh release delete -y "develop" || true
           fi
