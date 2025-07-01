@@ -111,7 +111,7 @@ upstream:
   googledns: dns.google
   # STCP 上游（密码:123456）
   mydns: stcp://123456@127.0.0.1:553
-# 默认上游（无匹配规则时使用）
+# 默认上游（未配置时使用第一个）
 default-upstream: mydns
 ```
 ### 路由规则（支持 geosite）
