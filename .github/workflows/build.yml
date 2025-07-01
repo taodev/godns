@@ -52,19 +52,17 @@ jobs:
           cp ../LICENSE "${DIR_NAME}"
           if [ '${{ matrix.os }}' = 'windows' ]; then
             cp godns "${DIR_NAME}/godns.exe"
-            cp geosite.dat "${DIR_NAME}"
+            cp geosite.dat ../conf/config.yaml "${DIR_NAME}"
             zip -r "${DIR_NAME}.zip" "${DIR_NAME}"
           else
             cp godns "${DIR_NAME}"
-            cp geosite.dat "${DIR_NAME}"
+            cp geosite.dat ../conf/config.yaml "${DIR_NAME}"
             tar -czvf "${DIR_NAME}.tar.gz" "${DIR_NAME}"
           fi
           rm -r "${DIR_NAME}"
         shell: bash
       - name: Cleanup
-        run: |
-          rm dist/godns
-          rm dist/geosite.dat
+        run: rm dist/godns dist/geosite.dat dist/config.yaml
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

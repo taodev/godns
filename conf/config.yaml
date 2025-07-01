@@ -11,7 +11,7 @@ cert: conf/cert.pem
 # HTTPS 私钥路径（可选）
 key: conf/key.pem
 # 自定义 GeoSite 路径（可选）
-geosite: conf/geosite.dat
+geosite: geosite.dat
 
 # DoH 服务监听地址
 doh: :443
