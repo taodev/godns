@@ -74,6 +74,8 @@ jobs:
     name: Upload builds
     if: "!failure()"
     runs-on: ubuntu-latest
+    permissions:
+        contents: read
     needs:
       - build
     steps:
