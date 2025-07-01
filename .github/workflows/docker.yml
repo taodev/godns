@@ -51,9 +51,7 @@ jobs:
           context: .
           push: true
           tags:
-            # 始终推送动态标签 (tag触发时是具体版本号, main分支时是develop)
             - ghcr.io/${{ github.repository }}:${{ env.TAG_NAME }}
             - ${{ github.repository }}:${{ env.TAG_NAME }}
-            # 仅当触发类型为tag时额外推送latest标签
             - ${{ github.ref_type == 'tag' && format('ghcr.io/{0}:latest', github.repository) || '' }}
             - ${{ github.ref_type == 'tag' && format('{0}:latest', github.repository) || '' }}
