@@ -106,6 +106,8 @@ jobs:
           echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_ENV
           echo "LATEST_FLAG=${LATEST_FLAG}" >> $GITHUB_ENV
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload assets
         run: |
           gh release create ${{ env.TAG_NAME }} --generate-notes ${{ env.LATEST_FLAG }} --title "${{ env.RELEASE_NAME }}" dist/*
