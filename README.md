@@ -8,7 +8,6 @@ godns 是一个专注于本地快速解析、缓存与规则分流的高性能 D
 - **IPv6 过滤**：可全局禁用 AAAA 记录响应，避免 IPv6 解析问题（如网络链路不稳定时）。
 - **多服务端支持**：内置 UDP、TCP、STCP、DoH 服务端，支持同时监听多个协议端口。
 
----
 ## 快速安装
 ### Docker 部署（推荐）
 ```bash
@@ -49,64 +48,85 @@ go build -o godns ./cmd/godns
 ./godns -c ./conf/config.yaml
 ```
 
----
 ## 配置说明
 核心配置文件为 [`conf/config.yaml`](./conf/config.yaml)，支持 YAML 格式，关键参数如下：
 ### 基础配置
 ```yaml
-log-level: debug      # 日志级别（debug/info/warn/error）
-udp: :55              # UDP 服务监听地址（默认端口 53）
-tcp: :55              # TCP 服务监听地址（可选）
-block-aaaa: true      # 是否禁用 AAAA 记录（IPv6）
-cert: conf/cert.pem   # HTTPS 证书路径（可选，启用 TLS）
-key: conf/key.pem     # HTTPS 私钥路径（可选）
+# 日志级别（debug/info/warn/error）
+log-level: debug
+# UDP 服务监听地址（默认端口 53）
+udp: :55
+# TCP 服务监听地址（可选）
+tcp: :55
+# 是否禁用 AAAA 记录（IPv6）
+block-aaaa: true
+# HTTPS 证书路径（可选，启用 TLS）
+cert: conf/cert.pem
+# HTTPS 私钥路径（可选）
+key: conf/key.pem
 ```
 ### STCP 服务（私有加密 TCP）
 ```yaml
 stcp:
-  addr: :553          # STCP 服务监听地址
-  password: 123456    # 通信密码（需与客户端一致）
+  # STCP 服务监听地址
+  addr: :553
+  # 通信密码（需与客户端一致）
+  password: 123456
 ```
 ### DoH 服务（DNS over HTTPS）
 ```yaml
-doh: :443             # DoH 服务监听地址
+# DoH 服务监听地址
+doh: :443
 ```
 ### 缓存配置
 ```yaml
 cache:
-  max-counters: 10000  # 最大缓存条目数
-  max-cost: 10000      # 最大缓存成本（与条目大小相关）
-  ttl: 24h             # 缓存默认 TTL
-  min-ttl: 60          # 最小覆盖 TTL（秒）
-  max-ttl: 86400       # 最大覆盖 TTL（秒）
+  # 最大缓存条目数
+  max-counters: 10000
+  # 最大缓存成本（与条目大小相关）
+  max-cost: 10000
+  # 缓存默认 TTL
+  ttl: 24h
+  # 最小覆盖 TTL（秒）
+  min-ttl: 60
+  # 最大覆盖 TTL（秒）
+  max-ttl: 86400
 ```
 ### 上游配置
 ```yaml
 upstream:
-  alidns: 223.5.5.5    # UDP 上游（自动补全为 udp://223.5.5.5:53）
-  googledns: dns.google # 支持域名（自动通过 bootstrap DNS 解析）
-  mydns: stcp://123456@127.0.0.1:553  # STCP 上游（密码:123456）
-default-upstream: mydns # 默认上游（无匹配规则时使用）
+  # UDP 上游（自动补全为 udp://223.5.5.5:53）
+  alidns: 223.5.5.5
+  # 支持域名（自动通过 bootstrap DNS 解析）
+  googledns: dns.google
+  # STCP 上游（密码:123456）
+  mydns: stcp://123456@127.0.0.1:553
+# 默认上游（无匹配规则时使用）
+default-upstream: mydns
 ```
 ### 路由规则（支持 geosite）
 ```yaml
 route:
-	# 匹配后缀的域名使用 mydns
+  # 匹配后缀的域名使用 mydns
   - mydns(suffix("github.com"))
-	# 阿里云相关域名使用 alidns
+  # 阿里云相关域名使用 alidns
   - alidns(geosite("aliyun"), suffix("aliyun.com"))
-	# GitHub/Google 域名使用 mydns
+  # GitHub/Google 域名使用 mydns
   - mydns(geosite("github", "google"))
-	# 国内域名使用 alidns
+  # 国内域名使用 alidns
   - alidns(geosite("cn"))
 ```
 ### 请求重写规则
 ```yaml
 rewrite:
-  - domain: test.example.com  # 目标域名
-    type: A                   # 记录类型（A/AAAA/CNAME/TXT）
-    value: 127.0.0.1          # 重写值（IP/CNAME/TXT内容）
-    ttl: 300                  # 自定义 TTL（秒）
+    # 目标域名
+  - domain: test.example.com
+    # 记录类型（A/AAAA/CNAME/TXT）
+    type: A
+    # 重写值（IP/CNAME/TXT内容）
+    value: 127.0.0.1
+    # 自定义 TTL（秒）
+    ttl: 300
 ```
 
 ---
