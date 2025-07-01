@@ -62,7 +62,7 @@ jobs:
           rm -r "${DIR_NAME}"
         shell: bash
       - name: Cleanup
-        run: rm dist/godns dist/geosite.dat dist/config.yaml
+        run: rm dist/godns dist/geosite.dat
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
