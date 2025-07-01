@@ -75,7 +75,7 @@ jobs:
     if: "!failure()"
     runs-on: ubuntu-latest
     permissions:
-        contents: read
+        contents: write
     needs:
       - build
     steps:
