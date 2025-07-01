@@ -132,13 +132,13 @@ func (s *DnsServer) exchangeSingle(ri *RequestInfo, qtype uint16, domain string)
 					slog.Warn("dns async refresh error", "error", refreshErr, "upstream", name, "domain", domain, "qtype", dns.TypeToString[qtype])
 					return
 				}
+				// 只记录 RcodeSuccess
 				if refreshResp.Rcode != dns.RcodeSuccess {
-					slog.Warn("dns async refresh failed", "rcode", refreshResp.Rcode, "upstream", name, "domain", domain, "qtype", dns.TypeToString[qtype])
 					return
 				}
 				updateMsgTTL(refreshResp, s.Options.Cache.MinTTL, s.Options.Cache.MaxTTL)
 				s.cache.Set(domain, qtype, refreshResp.Copy())
-				slog.Info("dns async refresh", "rcode", refreshResp.Rcode, "rtt", rtt, "upstream", name, "domain", domain, "qtype", dns.TypeToString[qtype])
+				slog.Debug("dns async refresh", "rcode", refreshResp.Rcode, "rtt", rtt, "upstream", name, "domain", domain, "qtype", dns.TypeToString[qtype])
 			}(qtype, domain)
 		}
 		rtt := time.Since(now)
@@ -155,8 +155,8 @@ func (s *DnsServer) exchangeSingle(ri *RequestInfo, qtype uint16, domain string)
 		slog.Warn("dns upstream exchange error", "error", err, "upstream", name, "domain", domain, "qtype", qtypeString)
 		return nil, time.Since(now), err
 	}
+	// 只记录 RcodeSuccess
 	if resp.Rcode != dns.RcodeSuccess {
-		slog.Warn("dns upstream exchange failed", "rcode", resp.Rcode, "upstream", name, "domain", domain, "qtype", qtypeString)
 		return resp, time.Since(now), nil
 	}
 
