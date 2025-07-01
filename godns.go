@@ -29,11 +29,14 @@ type DnsServer struct {
 
 	closeCh   chan struct{}
 	closeOnce sync.Once
+	errorCh   chan error
+	wg        sync.WaitGroup
+	// 运行状态
+	running bool
 }
 
 func (s *DnsServer) init() (err error) {
 	opts := s.Options
-
 	if s.logger == nil {
 		s.logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: opts.LoggerLevel(),
@@ -74,6 +77,7 @@ func (s *DnsServer) init() (err error) {
 	}
 
 	s.closeCh = make(chan struct{})
+	s.errorCh = make(chan error)
 
 	if len(opts.UDP) > 0 {
 		// 初始化 udp server
@@ -106,12 +110,17 @@ func (s *DnsServer) init() (err error) {
 	return nil
 }
 
-func (s *DnsServer) Serve() error {
+func (s *DnsServer) Serve() (err error) {
+	s.running = true
 	if err := s.init(); err != nil {
 		return err
 	}
 
-	<-s.closeCh
+	select {
+	case err = <-s.errorCh:
+		s.close()
+	case <-s.closeCh:
+	}
 
 	if s.udpServer != nil {
 		s.udpServer.Shutdown()
@@ -133,14 +142,28 @@ func (s *DnsServer) Serve() error {
 
 	s.cache.Close()
 
-	return nil
+	slog.Debug("dns server close")
+	return err
 }
 
-func (s *DnsServer) Close() error {
+func (s *DnsServer) close() error {
 	s.closeOnce.Do(func() {
 		close(s.closeCh)
 	})
 	return nil
+}
+
+func (s *DnsServer) Shutdown() (err error) {
+	err = s.close()
+	if err != nil {
+		return err
+	}
+
+	if s.running {
+		s.wg.Wait()
+		s.running = false
+	}
+	return
 }
 
 func NewDnsServer(opts *Options, logger *slog.Logger) *DnsServer {

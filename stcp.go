@@ -57,10 +57,13 @@ func (svr *DnsServer) setupStcpServer() (err error) {
 		password: svr.Options.STCP.Password,
 		handler:  svr.handleStcp,
 	}
+	svr.wg.Add(1)
 	go func() {
+		defer svr.wg.Done()
 		if err = svr.stcpServer.ListenAndServe(); err != nil {
-			slog.Error("stcp server listen failed", "err", err)
+			svr.errorCh <- fmt.Errorf("stcp server listen and serve failed, err: %v", err)
 		}
+		slog.Debug("stcp server close")
 	}()
 	slog.Info("stcp server tcp listen", "addr", svr.Options.STCP.Addr)
 	return nil

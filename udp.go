@@ -1,7 +1,7 @@
 package godns
 
 import (
-	"log"
+	"fmt"
 	"log/slog"
 
 	"github.com/miekg/dns"
@@ -13,15 +13,16 @@ func (s *DnsServer) setupUdpServer() error {
 		Addr: s.Options.UDP,
 		Net:  "udp",
 	}
-
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		if err := s.udpServer.ListenAndServe(); err != nil {
-			log.Printf("dns server listen and serve failed, err: %v", err)
-			s.Close()
+			s.errorCh <- fmt.Errorf("dns server listen and serve failed, err: %v", err)
 		}
+		slog.Info("udp server close")
 	}()
 
-	slog.Info("dns server udp listen", "addr", s.Options.UDP)
+	slog.Info("udp server listen", "addr", s.Options.UDP)
 
 	return nil
 }
@@ -29,18 +30,19 @@ func (s *DnsServer) setupUdpServer() error {
 func (s *DnsServer) setupTcpServer() error {
 	dns.HandleFunc(".", s.handle("tcp"))
 	s.tcpServer = &dns.Server{
-		Addr: s.Options.UDP,
+		Addr: s.Options.TCP,
 		Net:  "tcp",
 	}
-
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		if err := s.tcpServer.ListenAndServe(); err != nil {
-			log.Printf("tcp server listen and serve failed, err: %v", err)
-			s.Close()
+			s.errorCh <- fmt.Errorf("tcp server listen and serve failed, err: %v", err)
 		}
+		slog.Debug("tcp server close")
 	}()
 
-	slog.Info("dns server tcp listen", "addr", s.Options.UDP)
+	slog.Info("tcp server listen", "addr", s.Options.TCP)
 
 	return nil
 }

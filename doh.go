@@ -2,6 +2,7 @@ package godns
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -17,18 +18,19 @@ func (s *DnsServer) setupDohServer() error {
 		Addr:    s.Options.DoH,
 		Handler: mux,
 	}
-
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		if len(s.Options.Cert) > 0 {
 			if err := s.dohServer.ListenAndServeTLS(s.Options.Cert, s.Options.Key); err != nil && err != http.ErrServerClosed {
-				slog.Error("ListenAndServeTLS error", slog.Any("err", err))
-				s.Close()
+				s.errorCh <- fmt.Errorf("doh server listen and serve tls failed, err: %v", err)
 			}
+			slog.Info("https server close")
 		} else {
 			if err := s.dohServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				slog.Error("ListenAndServe error", slog.Any("err", err))
-				s.Close()
+				s.errorCh <- fmt.Errorf("doh server listen and serve failed, err: %v", err)
 			}
+			slog.Info("http server close")
 		}
 	}()
 
