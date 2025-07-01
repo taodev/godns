@@ -4,7 +4,7 @@ WORKDIR /app
 COPY . .
 RUN go mod download
 RUN go build -v -trimpath -o godns -ldflags "-s -w" ./cmd/godns && \
-		sh ./.github/update-geosite.sh
+		sh ./scripts/update-geosite.sh
 
 # 第二阶段：极简运行环境
 FROM alpine:latest
