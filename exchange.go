@@ -89,6 +89,13 @@ func (s *DnsServer) exchange(ri *RequestInfo, in *dns.Msg) (*dns.Msg, time.Durat
 func (s *DnsServer) exchangeSingle(ri *RequestInfo, qtype uint16, domain string) (*dns.Msg, time.Duration, error) {
 	now := time.Now()
 
+	// 处理客户端反查
+	if qtype == dns.TypePTR {
+		resp := new(dns.Msg)
+		resp.Rcode = dns.RcodeSuccess
+		return resp, time.Since(now), nil
+	}
+
 	// 阻止 AAAA 查询（IPv6）
 	if s.Options.BlockAAAA && qtype == dns.TypeAAAA {
 		resp := new(dns.Msg)
