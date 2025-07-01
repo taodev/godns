@@ -84,6 +84,11 @@ jobs:
           merge-multiple: true
       - name: Upload assets
         run: |
-          gh release create ${{ env.TAG_NAME }} --generate-notes --latest --title ${{ env.RELEASE_NAME }} dist
+          gh release create "$TAG_NAME" dist/* \
+            --title "$RELEASE_NAME" \
+            --generate-notes \
+            --latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ env.TAG_NAME }}
+          RELEASE_NAME: ${{ env.RELEASE_NAME }}
