@@ -13,7 +13,8 @@ godns 是一个专注于本地快速解析、缓存与规则分流的高性能 D
 ```bash
 # 拉取镜像
 docker pull taodev/godns:latest
-
+```
+```bash
 # 启动容器（挂载配置文件）
 docker run -d \
   -p 53:53 \
@@ -26,14 +27,16 @@ docker run -d \
 ```bash
 # 拉取镜像
 docker pull ghcr.io/taodev/godns:latest
+```
 
+```bash
 # 启动容器（挂载配置文件）
 docker run -d \
   -p 53:53 \
   -p 443:443 \
   -v ./conf:/app/conf \
   --name godns \
-  taodev/godns:latest
+  ghcr.io/taodev/godns:latest
 ```
 ### 源码构建
 ```bash
