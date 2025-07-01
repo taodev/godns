@@ -2,6 +2,7 @@ name: Build
 on:
   push:
     branches: [main]
+    tags: ['v*']
 
 jobs:
   build:
@@ -18,11 +19,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ^1.24
-      - name: Set variables
-        run: |
-          echo "RELEASE_NAME=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
-          echo "TAG_NAME=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
-        shell: bash
       - name: Build
         run: |
           set -xeuo pipefail
@@ -42,7 +38,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set name
         run: |-
-          DIR_NAME="godns-1.0.0-${{ matrix.os }}-${{ matrix.arch }}"
+          # 根据触发类型设置目录名
+          if [[ "${GITHUB_REF}" == "refs/tags/"* ]]; then
+            DIR_NAME="godns-${GITHUB_REF_NAME}-${{ matrix.os }}-${{ matrix.arch }}"
+          elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            DIR_NAME="godns-develop-${{ matrix.os }}-${{ matrix.arch }}"
+          else
+            echo "Unsupported ref: ${GITHUB_REF}"
+            exit 1
+          fi
           echo "DIR_NAME=${DIR_NAME}" >> "${GITHUB_ENV}"
       - name: Archive
         run: |
@@ -86,10 +90,24 @@ jobs:
           merge-multiple: true
       - name: Set variables
         run: |
-          echo "RELEASE_NAME=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
-          echo "TAG_NAME=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+          # 根据触发类型设置发布参数
+          if [[ "${GITHUB_REF}" == "refs/tags/"* ]]; then
+            TAG_NAME="${GITHUB_REF_NAME}"
+            RELEASE_NAME="${GITHUB_REF_NAME}"
+            LATEST_FLAG="--latest"
+          elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            TAG_NAME="develop"
+            RELEASE_NAME="develop"
+            LATEST_FLAG=""
+            # 覆盖旧版本：先删除已有的develop发布（忽略不存在的错误）
+            gh release delete -y "develop" || true
+          fi
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
+          echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_ENV
+          echo "LATEST_FLAG=${LATEST_FLAG}" >> $GITHUB_ENV
+        shell: bash
       - name: Upload assets
         run: |
-          gh release create ${{ env.TAG_NAME }} --generate-notes --latest --title ${{ env.RELEASE_NAME }} dist/*
+          gh release create ${{ env.TAG_NAME }} --generate-notes ${{ env.LATEST_FLAG }} --title "${{ env.RELEASE_NAME }}" dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
