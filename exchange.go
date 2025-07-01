@@ -109,7 +109,6 @@ func (s *DnsServer) exchangeSingle(ri *RequestInfo, qtype uint16, domain string)
 
 	// 检查是否需要重写
 	if rewrite, ok := s.rewrite(domain, qtype); ok {
-		updateMsgTTL(rewrite, s.Options.Cache.MinTTL, s.Options.Cache.MaxTTL)
 		rtt := time.Since(now)
 		slog.Info("request", "upstream", "rewrite", "domain", domain, "qtype", qtypeString, "inbound", ri.Inbound, "rtt", rtt, "client", ri.IP)
 		return rewrite, rtt, nil

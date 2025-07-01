@@ -38,10 +38,10 @@ cache:
   buffer-items: 64
   # 缓存默认 TTL
   ttl: 24h
-  # 最小覆盖 TTL（秒）
-  min-ttl: 60
-  # 最大覆盖 TTL（秒）
-  max-ttl: 86400
+  # 最小覆盖 TTL (format: 1h, 1m, 1s)
+  min-ttl: 60s
+  # 最大覆盖 TTL
+  max-ttl: 24h
 
 # 上游配置
 upstream:
@@ -73,5 +73,5 @@ rewrite:
     type: A
     # 重写值（IP/CNAME/TXT内容）
     value: 127.0.0.1
-    # 自定义 TTL（秒）
-    ttl: 300
+    # 自定义 TTL
+    ttl: 60s

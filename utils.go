@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/netip"
 	"strings"
+	"time"
 
 	"github.com/miekg/dns"
 )
@@ -62,23 +63,25 @@ func GetMinTTL(msg *dns.Msg) uint32 {
 }
 
 // 覆写 dns.Msg 的 ttl
-func updateMsgTTL(msg *dns.Msg, minTTL, maxTTL uint32) {
+func updateMsgTTL(msg *dns.Msg, minTTL, maxTTL time.Duration) {
+	max := uint32(maxTTL.Seconds())
+	min := uint32(minTTL.Seconds())
 	for _, rr := range msg.Answer {
-		if minTTL > 0 && rr.Header().Ttl < minTTL {
-			rr.Header().Ttl = minTTL
+		if minTTL > 0 && rr.Header().Ttl < min {
+			rr.Header().Ttl = min
 		}
-		if maxTTL > 0 && rr.Header().Ttl > maxTTL {
-			rr.Header().Ttl = maxTTL
+		if maxTTL > 0 && rr.Header().Ttl > max {
+			rr.Header().Ttl = max
 		}
 	}
 	for _, rr := range msg.Ns {
-		if minTTL > 0 && rr.Header().Ttl < minTTL {
-			rr.Header().Ttl = minTTL
+		if minTTL > 0 && rr.Header().Ttl < min {
+			rr.Header().Ttl = min
 		}
 	}
 	for _, rr := range msg.Extra {
-		if minTTL > 0 && rr.Header().Ttl < minTTL {
-			rr.Header().Ttl = minTTL
+		if minTTL > 0 && rr.Header().Ttl < min {
+			rr.Header().Ttl = min
 		}
 	}
 }

@@ -20,25 +20,29 @@ func (s *DnsServer) rewrite(domain string, qtype uint16) (*dns.Msg, bool) {
 		}
 		// 构建重写响应
 		resp := new(dns.Msg)
+		ttl := uint32(rule.TTL.Seconds())
+		if ttl <= 0 {
+			ttl = uint32(s.Options.Cache.MinTTL)
+		}
 		switch qtype {
 		case dns.TypeA:
 			resp.Answer = append(resp.Answer, &dns.A{
-				Hdr: dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: qtype, Class: dns.ClassINET, Ttl: s.Options.Cache.MinTTL},
-				A:   net.ParseIP(rule.Value).To4(),
+				Hdr: dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: qtype, Class: dns.ClassINET, Ttl: ttl},
+				A:   net.ParseIP(rule.Value),
 			})
 		case dns.TypeAAAA:
 			resp.Answer = append(resp.Answer, &dns.AAAA{
-				Hdr:  dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: qtype, Class: dns.ClassINET, Ttl: s.Options.Cache.MinTTL},
-				AAAA: net.ParseIP(rule.Value).To16(),
+				Hdr:  dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: qtype, Class: dns.ClassINET, Ttl: ttl},
+				AAAA: net.ParseIP(rule.Value),
 			})
 		case dns.TypeTXT:
 			resp.Answer = append(resp.Answer, &dns.TXT{
-				Hdr: dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: qtype, Class: dns.ClassINET, Ttl: s.Options.Cache.MinTTL},
+				Hdr: dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: qtype, Class: dns.ClassINET, Ttl: ttl},
 				Txt: []string{rule.Value},
 			})
 		case dns.TypeCNAME:
 			resp.Answer = append(resp.Answer, &dns.CNAME{
-				Hdr:    dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: s.Options.Cache.MinTTL},
+				Hdr:    dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: ttl},
 				Target: dns.Fqdn(rule.Value),
 			})
 		default:
