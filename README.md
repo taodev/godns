@@ -55,15 +55,17 @@ go build -o godns ./cmd/godns
 # 日志级别（debug/info/warn/error）
 log-level: debug
 # UDP 服务监听地址（默认端口 53）
-udp: :55
+udp: :53
 # TCP 服务监听地址（可选）
-tcp: :55
+tcp: :53
 # 是否禁用 AAAA 记录（IPv6）
 block-aaaa: true
 # HTTPS 证书路径（可选，启用 TLS）
 cert: conf/cert.pem
 # HTTPS 私钥路径（可选）
 key: conf/key.pem
+# 自定义 GeoSite 路径（可选）
+geosite: conf/geosite.dat
 ```
 ### STCP 服务（私有加密 TCP）
 ```yaml
@@ -78,6 +80,12 @@ stcp:
 # DoH 服务监听地址
 doh: :443
 ```
+### Bootstrap DNS 服务器
+```yaml
+bootstrap-dns:
+  - 223.5.5.5
+  - 223.6.6.6
+```
 ### 缓存配置
 ```yaml
 cache:
@@ -85,6 +93,8 @@ cache:
   max-counters: 10000
   # 最大缓存成本（与条目大小相关）
   max-cost: 10000
+  # 写缓存数量
+  buffer-items: 64
   # 缓存默认 TTL
   ttl: 24h
   # 最小覆盖 TTL（秒）

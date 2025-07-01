@@ -1,51 +1,77 @@
+# 日志级别（debug/info/warn/error）
 log-level: debug
-
-udp: :55
-stcp:
-  addr: :553
-  password: 123456
-doh: :443
-cert: conf/cert.pem
-key: conf/key.pem
-geosite: conf/geosite.dat
-# 是否阻止 AAAA 查询（IPv6）
+# UDP 服务监听地址（默认端口 53）
+udp: :53
+# TCP 服务监听地址（可选）
+tcp: :53
+# 是否禁用 AAAA 记录（IPv6）
 block-aaaa: true
+# HTTPS 证书路径（可选，启用 TLS）
+cert: conf/cert.pem
+# HTTPS 私钥路径（可选）
+key: conf/key.pem
+# 自定义 GeoSite 路径（可选）
+geosite: conf/geosite.dat
 
+# DoH 服务监听地址
+doh: :443
+
+# STCP 配置
+stcp:
+  # STCP 服务监听地址
+  addr: :553
+  # 通信密码（需与客户端一致）
+  password: 123456
+
+# Bootstrap DNS 服务器
 bootstrap-dns:
   - 223.5.5.5
   - 223.6.6.6
 
+# 缓存配置
 cache:
+  # 最大缓存条目数
   max-counters: 10000
+  # 最大缓存成本（与条目大小相关）
   max-cost: 10000
+  # 写缓存数量
   buffer-items: 64
+  # 缓存默认 TTL
   ttl: 24h
-  # 覆盖最小 TTL 值, 单位为秒
-  # 如果设置为 0，则不覆盖最小 TTL 值
-  min-ttl: 60 # 1 分钟
-  # 覆盖最大 TTL 值, 单位为秒
-  # 如果设置为 0，则不覆盖最大 TTL 值
-  max-ttl: 86400 # 1 天
+  # 最小覆盖 TTL（秒）
+  min-ttl: 60
+  # 最大覆盖 TTL（秒）
+  max-ttl: 86400
 
+# 上游配置
 upstream:
+  # UDP 上游（自动补全为 udp://223.5.5.5:53）
   alidns: 223.5.5.5
+  # 支持域名（自动通过 bootstrap DNS 解析）
   googledns: dns.google
-  mydns: 8.8.8.8
-
+  # STCP 上游（密码:123456）
+  mydns: stcp://123456@127.0.0.1:553
+# 默认上游（无匹配规则时使用）
 default-upstream: mydns
 
+# 路由配置
 route:
-	# 匹配后缀的域名使用 mydns
+  # 匹配后缀的域名使用 mydns
   - mydns(suffix("github.com"))
-	# 阿里云相关域名使用 alidns
+  # 阿里云相关域名使用 alidns
   - alidns(geosite("aliyun"), suffix("aliyun.com"))
-	# GitHub/Google 域名使用 mydns
+  # GitHub/Google 域名使用 mydns
   - mydns(geosite("github", "google"))
-	# 国内域名使用 alidns
+  # 国内域名使用 alidns
   - alidns(geosite("cn"))
 
+# 重写配置
 rewrite:
+    # 目标域名
   - domain: test.example.com
+    # 记录类型（A/AAAA/CNAME/TXT）
     type: A
+    # 重写值（IP/CNAME/TXT内容）
     value: 127.0.0.1
-    response-type: normal
+    # 自定义 TTL（秒）
+    ttl: 300
