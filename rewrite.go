@@ -36,6 +36,11 @@ func (s *DnsServer) rewrite(domain string, qtype uint16) (*dns.Msg, bool) {
 				Hdr: dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: qtype, Class: dns.ClassINET, Ttl: s.Options.Cache.MinTTL},
 				Txt: []string{rule.Value},
 			})
+		case dns.TypeCNAME:
+			resp.Answer = append(resp.Answer, &dns.CNAME{
+				Hdr:    dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: s.Options.Cache.MinTTL},
+				Target: dns.Fqdn(rule.Value),
+			})
 		default:
 			slog.Warn("unsupported rewrite type", "type", rule.Type)
 			return nil, false
