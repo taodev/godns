@@ -159,10 +159,10 @@ curl "https://127.0.0.1/dns-query?dns=$(base64url encode 'example.com 的 DNS �
 
 ---
 ## 贡献与反馈
-问题反馈：GitHub Issues
-代码贡献：提交 Pull Request 前请先创建 [Issues](https://github.com/taodev/godns/issues) 讨论功能需求。
-配置扩展：支持通过 geosite.dat 文件自定义分流规则（需下载或生成）。
+- **问题反馈**：GitHub Issues
+- **代码贡献**：提交 Pull Request 前请先创建 [Issues](https://github.com/taodev/godns/issues) 讨论功能需求。
+- **配置扩展**：支持通过 [`geosite.dat`](https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat) 文件自定义分流规则。
 
 ---
 ## 许可证
-MIT License，详见 [LICENSE](./LICENSE)。
+MIT License，详见 [`LICENSE`](./LICENSE)。
