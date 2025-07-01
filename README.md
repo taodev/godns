@@ -156,6 +156,13 @@ curl "https://127.0.0.1/dns-query?dns=$(base64url encode 'example.com 的 DNS �
 ### STCP 客户端（加密通信）
 使用支持 `STCP` 协议的客户端，配置服务地址 `127.0.0.1:553` 和密码 `123456`，发送加密 `DNS` 请求。
 
+## 开发计划
+- 使用 `goroutine` 池更新缓存
+- `DNS-over-TLS` 支持
+- `DNS-over-QUIC` 支持
+- 管理 `http` 接口
+- 管理页面
+
 ## 贡献与反馈
 - **问题反馈**：GitHub Issues
 - **代码贡献**：提交 Pull Request 前请先创建 [Issues](https://github.com/taodev/godns/issues) 讨论功能需求。
