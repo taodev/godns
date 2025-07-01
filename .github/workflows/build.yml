@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -29,7 +27,7 @@ jobs:
         run: |
           set -xeuo pipefail
           mkdir -p dist
-          go build -v -trimpath -o dist/godns -ldflags '-s -w' ./cmd/gotun
+          go build -v -trimpath -o dist/godns -ldflags '-s -w' ./cmd/godns
           cd dist
           bash ../scripts/update-geosite.sh
         shell: bash
@@ -44,7 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set name
         run: |-
-          DIR_NAME="sing-box-1.0.0-${{ matrix.os }}-${{ matrix.arch }}"
+          DIR_NAME="godns-1.0.0-${{ matrix.os }}-${{ matrix.arch }}"
           echo "DIR_NAME=${DIR_NAME}" >> "${GITHUB_ENV}"
       - name: Archive
         run: |
