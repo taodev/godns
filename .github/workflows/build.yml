@@ -82,6 +82,10 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      - name: Set variables
+        run: |
+          echo "RELEASE_NAME=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+          echo "TAG_NAME=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
       - name: Upload assets
         run: |
           gh release create "$TAG_NAME" dist/* \
