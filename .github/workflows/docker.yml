@@ -33,25 +33,22 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set tag
+      - name: Set image tags
         run: |
           if [[ "${GITHUB_REF}" == "refs/tags/"* ]]; then
-            TAG_NAME="${GITHUB_REF_NAME}"
+            TAGS="ghcr.io/${{ github.repository }}:${GITHUB_REF_NAME},${{ github.repository }}:${GITHUB_REF_NAME}"
+            TAGS="ghcr.io/${{ github.repository }}:latest,${{ github.repository }}:latest"
           elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            TAG_NAME="develop"
+            TAGS="ghcr.io/${{ github.repository }}:develop,${{ github.repository }}:develop"
           else
             echo "Unsupported ref: ${GITHUB_REF}"
             exit 1
           fi
-          echo "TAG_NAME=${TAG_NAME}" >> "${GITHUB_ENV}"
+          echo "TAGS=${TAGS}" >> "${GITHUB_ENV}"
 
       - name: Build and Push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags:
-            - ghcr.io/${{ github.repository }}:${{ env.TAG_NAME }}
-            - ${{ github.repository }}:${{ env.TAG_NAME }}
-            - ${{ github.ref_type == 'tag' && format('ghcr.io/{0}:latest', github.repository) || '' }}
-            - ${{ github.ref_type == 'tag' && format('{0}:latest', github.repository) || '' }}
+          tags: ${{ env.TAGS }}
