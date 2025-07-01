@@ -35,9 +35,13 @@ upstream:
 default-upstream: mydns
 
 route:
-  - mydns(suffix("my.dev", "myssh.com"))
-  - alidns(geosite("aliyun", "alibaba"), suffix("aliyun.com"))
-  - mydns(geosite("github", "google", "openai", "anthropic"))
+	# 匹配后缀的域名使用 mydns
+  - mydns(suffix("github.com"))
+	# 阿里云相关域名使用 alidns
+  - alidns(geosite("aliyun"), suffix("aliyun.com"))
+	# GitHub/Google 域名使用 mydns
+  - mydns(geosite("github", "google"))
+	# 国内域名使用 alidns
   - alidns(geosite("cn"))
 
 rewrite:
