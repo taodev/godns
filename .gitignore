@@ -31,6 +31,6 @@ go.work.sum
 # .idea/
 # .vscode/
 *.pem
-godns
+/godns
 test/
 *.dat

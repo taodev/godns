@@ -41,6 +41,7 @@ func main() {
 	case <-quit:
 	}
 
+	log.Println("Shutting down server...")
 	// 关闭 server
 	if err = server.Shutdown(); err != nil {
 		log.Fatal(err)
@@ -53,6 +54,9 @@ func loadConfig(name string) (*godns.Options, error) {
 		return nil, err
 	}
 	var opts godns.Options
+	if err = opts.Default(); err != nil {
+		return nil, err
+	}
 	if err = yaml.Unmarshal(data, &opts); err != nil {
 		return nil, err
 	}

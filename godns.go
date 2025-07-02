@@ -93,7 +93,7 @@ func (s *DnsServer) init() (err error) {
 		}
 	}
 
-	if len(opts.STCP.Addr) > 0 {
+	if opts.STCP != nil {
 		// 初始化 stcp server
 		if err := s.setupStcpServer(); err != nil {
 			return err

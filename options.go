@@ -3,48 +3,81 @@ package godns
 import (
 	"log/slog"
 	"time"
+
+	"github.com/taodev/pkg/defaults"
 )
 
+// 重写配置
 type RewriteOptions struct {
-	Domain string        `yaml:"domain"`
-	Type   string        `yaml:"type"`
-	Value  string        `yaml:"value"`
-	TTL    time.Duration `yaml:"ttl"`
+	// 域名
+	Domain string `yaml:"domain"`
+	// 类型
+	Type string `yaml:"type" default:"A"`
+	// 值
+	Value string `yaml:"value"`
+	// TTL
+	TTL time.Duration `yaml:"ttl" default:"60s"`
 }
 
+// 路由配置
 type Options struct {
-	LogLevel string `yaml:"log-level"`
-	UDP      string `yaml:"udp"`
-	TCP      string `yaml:"tcp"`
+	// 日志级别（debug/info/warn/error）
+	LogLevel string `yaml:"log-level" default:"info"`
+	// UDP 服务监听地址
+	UDP string `yaml:"udp"`
+	// TCP 服务监听地址
+	TCP string `yaml:"tcp"`
 
-	STCP struct {
-		Addr     string `yaml:"addr"`
+	// STCP 配置
+	STCP *struct {
+		// STCP 服务监听地址
+		Addr string `yaml:"addr" default:"553"`
+		// 通信密码 (服务器与客户端一致)
 		Password string `yaml:"password"`
 	} `yaml:"stcp"`
 
-	DoH     string `yaml:"doh"`
-	Cert    string `yaml:"cert"`
-	Key     string `yaml:"key"`
-	GeoSite string `yaml:"geosite"`
+	// DoH 服务监听地址
+	DoH string `yaml:"doh"`
+	// HTTPS 证书路径（可选，启用 TLS）
+	Cert string `yaml:"cert"`
+	// HTTPS 私钥路径（可选）
+	Key string `yaml:"key"`
+	// GeoSite 路径
+	GeoSite string `yaml:"geosite" default:"geosite.dat"`
 	// 是否阻止 AAAA 查询（IPv6）
 	BlockAAAA bool `yaml:"block-aaaa"`
+	// Bootstrap DNS 服务器
+	BootstrapDNS []string `yaml:"bootstrap-dns" default:"[223.5.5.5, 223.6.6.6]"`
 
-	BootstrapDNS []string `yaml:"bootstrap-dns"`
-
+	// 缓存配置
 	Cache struct {
-		MaxCounters int64         `yaml:"max-counters"`
-		MaxCost     int64         `yaml:"max-cost"`
-		BufferItems int64         `yaml:"buffer-items"`
-		TTL         time.Duration `yaml:"ttl"`
-		MinTTL      time.Duration `yaml:"min-ttl"` // 覆盖最小 TTL 值
-		MaxTTL      time.Duration `yaml:"max-ttl"` // 覆盖最大 TTL
+		// 最大缓存条目数
+		MaxCounters int64 `yaml:"max-counters" default:"10000"`
+		// 最大缓存成本（与条目大小相关）
+		MaxCost int64 `yaml:"max-cost" default:"10000"`
+		// 写缓存数量
+		BufferItems int64 `yaml:"buffer-items" default:"64"`
+		// 缓存默认 TTL
+		TTL time.Duration `yaml:"ttl" default:"24h"`
+		// 最小覆盖 TTL (format: 1h, 1m, 1s)
+		MinTTL time.Duration `yaml:"min-ttl" default:"60s"` // 覆盖最小 TTL 值
+		// 最大覆盖 TTL (format: 1h, 1m, 1s)
+		MaxTTL time.Duration `yaml:"max-ttl" default:"24h"` // 覆盖最大 TTL
 	} `yaml:"cache"`
 
-	Upstream        map[string]string `yaml:"upstream"`
-	DefaultUpstream string            `yaml:"default-upstream"`
+	// 上游配置
+	Upstream map[string]string `yaml:"upstream"`
+	// 默认上游（未配置时使用第一个）
+	DefaultUpstream string `yaml:"default-upstream"`
 
-	Route   []string         `yaml:"route"`
+	// 路由配置
+	Route []string `yaml:"route"`
+	// 重写配置
 	Rewrite []RewriteOptions `yaml:"rewrite"`
+}
+
+func (o *Options) Default() error {
+	return defaults.Set(o)
 }
 
 func (o *Options) LoggerLevel() slog.Level {
