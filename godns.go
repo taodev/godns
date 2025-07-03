@@ -13,6 +13,7 @@ import (
 	"github.com/taodev/godns/internal/transport"
 	"github.com/taodev/godns/internal/transport/http"
 	"github.com/taodev/godns/internal/transport/tcp"
+	"github.com/taodev/godns/internal/transport/udp"
 	"github.com/taodev/godns/internal/utils"
 	"github.com/taodev/godns/pkg/bootstrap"
 	"github.com/taodev/pkg/geodb"
@@ -22,6 +23,7 @@ type DnsServer struct {
 	Options *Options
 	logger  *slog.Logger
 
+	inboundUDP   *udp.Inbound
 	inboundTCP   *tcp.Inbound
 	inboundTLS   *tcp.Inbound
 	inboundSTCP  *tcp.Inbound
@@ -85,6 +87,13 @@ func (s *DnsServer) init() (err error) {
 	}
 
 	// new version
+	if opts.Inbounds.UDP != nil {
+		opts.Inbounds.UDP.Type = utils.TypeUDP
+		s.inboundUDP = udp.NewInbound(context.Background(), s.router, opts.Inbounds.UDP)
+		if err = s.inboundUDP.Start(); err != nil {
+			return err
+		}
+	}
 	if opts.Inbounds.TCP != nil {
 		opts.Inbounds.TCP.Type = utils.TypeTCP
 		s.inboundTCP = tcp.NewInbound(context.Background(), s.router, opts.Inbounds.TCP)
@@ -139,6 +148,9 @@ func (s *DnsServer) Serve() (err error) {
 	}
 
 	// new version
+	if s.inboundUDP != nil {
+		s.inboundUDP.Close()
+	}
 	if s.inboundTCP != nil {
 		s.inboundTCP.Close()
 	}

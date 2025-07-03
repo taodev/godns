@@ -14,6 +14,7 @@ import (
 	"github.com/taodev/godns/internal/adapter"
 	"github.com/taodev/godns/internal/transport/http"
 	"github.com/taodev/godns/internal/transport/tcp"
+	"github.com/taodev/godns/internal/transport/udp"
 	"github.com/taodev/godns/internal/utils"
 	"github.com/taodev/godns/pkg/bootstrap"
 )
@@ -64,6 +65,8 @@ func (m *Manager) Add(tag string, addr string) {
 		m.outbounds[tag] = tcp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port), u.User.Username())
 	case utils.TypeHTTP, utils.TypeHTTPS:
 		m.outbounds[tag] = http.NewOutbound(tag, u.Scheme, addr)
+	case utils.TypeUDP:
+		m.outbounds[tag] = udp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port))
 	default:
 		// 暂时不支持的协议
 		slog.Error("unsupported upstream protocol", "protocol", u.Scheme, "addr", addr)

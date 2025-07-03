@@ -8,6 +8,7 @@ import (
 	"github.com/taodev/godns/internal/route"
 	"github.com/taodev/godns/internal/transport/http"
 	"github.com/taodev/godns/internal/transport/tcp"
+	"github.com/taodev/godns/internal/transport/udp"
 	"github.com/taodev/pkg/defaults"
 )
 
@@ -17,6 +18,8 @@ type Options struct {
 	LogLevel string `yaml:"log-level" default:"info"`
 	// 入站配置
 	Inbounds struct {
+		// UDP 入站配置
+		UDP *udp.Options `yaml:"udp"`
 		// TCP 入站配置
 		TCP *tcp.Options `yaml:"tcp"`
 		// TLS 入站配置

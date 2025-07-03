@@ -5,6 +5,7 @@ geosite: geosite.dat
 
 # 入站配置
 inbound:
+  udp: { type: 'udp', addr: ':55' }
   tcp: { type: 'tcp', addr: ':55' }
   tls: { type: 'tls', addr: ':853', cert: 'conf/cert.pem', key: 'conf/key.pem' }
   stcp: { type: 'stcp', addr: ':553', password: '123456' }
@@ -38,7 +39,7 @@ cache:
 # 出站配置
 outbound:
   # UDP 上游（自动补全为 udp://223.5.5.5:53）
-  # udpdns: 223.5.5.5:53
+  udpdns: udp://223.5.5.5:53
   tcpdns: tcp://223.5.5.5:53
   tlsdns: tls://223.5.5.5:853
   stcpdns: stcp://123456@223.5.5.5:553
