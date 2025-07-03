@@ -10,7 +10,7 @@ import (
 )
 
 // 重写配置
-type Options struct {
+type RuleOptions struct {
 	// 域名
 	Domain string `yaml:"domain"`
 	// 类型
@@ -21,19 +21,26 @@ type Options struct {
 	TTL time.Duration `yaml:"ttl" default:"60s"`
 }
 
-type Rewriter struct {
-	Rules []Options
+type Options struct {
+	MinTTL time.Duration `yaml:"min-ttl" default:"600s"`
+	MaxTTL time.Duration `yaml:"max-ttl" default:"24h"`
+	// 规则
+	Rules []RuleOptions `yaml:"rule"`
 }
 
-func NewRewriter(opts []Options) *Rewriter {
+type Rewriter struct {
+	options Options
+}
+
+func NewRewriter(opts Options) *Rewriter {
 	return &Rewriter{
-		Rules: opts,
+		options: opts,
 	}
 }
 
 func (r *Rewriter) Rewrite(domain string, qtype uint16) (*dns.Msg, bool) {
 	query := strings.ToLower(strings.TrimSuffix(domain, "."))
-	for _, rule := range r.Rules {
+	for _, rule := range r.options.Rules {
 		if !strings.EqualFold(query, rule.Domain) {
 			continue
 		}
@@ -72,4 +79,27 @@ func (r *Rewriter) Rewrite(domain string, qtype uint16) (*dns.Msg, bool) {
 		return resp, true
 	}
 	return nil, false
+}
+
+func (r *Rewriter) UpdateTTL(msg *dns.Msg) {
+	max := uint32(r.options.MaxTTL.Seconds())
+	min := uint32(r.options.MinTTL.Seconds())
+	for _, rr := range msg.Answer {
+		if min > 0 && rr.Header().Ttl < min {
+			rr.Header().Ttl = min
+		}
+		if max > 0 && rr.Header().Ttl > max {
+			rr.Header().Ttl = max
+		}
+	}
+	for _, rr := range msg.Ns {
+		if min > 0 && rr.Header().Ttl < min {
+			rr.Header().Ttl = min
+		}
+	}
+	for _, rr := range msg.Extra {
+		if min > 0 && rr.Header().Ttl < min {
+			rr.Header().Ttl = min
+		}
+	}
 }

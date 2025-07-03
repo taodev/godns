@@ -63,19 +63,8 @@ outbound:
   alidns: tls://223.5.5.5:853
   mydns: stcp://123456@127.0.0.1:5053
 
-# 路由配置
-route:
-  # # 匹配后缀的域名使用 mydns
-  # - mydns(suffix("github.com"))
-  # # 阿里云相关域名使用 alidns
-  # - alidns(geosite("aliyun"), suffix("aliyun.com"))
-  # # GitHub/Google 域名使用 mydns
-  # - mydns(geosite("github", "google"))
-  # # 国内域名使用 alidns
-  # - alidns(geosite("cn"))
-
   # 路由配置
-route-v2:
+route:
   block-aaaa: true
   rules:
     # 国内域名使用 alidns
@@ -84,22 +73,14 @@ route-v2:
 
 # 重写配置
 rewrite:
-    # 目标域名
-  - domain: test.example.com
-    # 记录类型（A/AAAA/CNAME/TXT）
-    type: A
-    # 重写值（IP/CNAME/TXT内容）
-    value: 127.0.0.1
-    # 自定义 TTL
-    ttl: 60s
-
-# 重写配置
-rewrite-v2:
-    # 目标域名
-  - domain: test.example.com
-    # 记录类型（A/AAAA/CNAME/TXT）
-    type: A
-    # 重写值（IP/CNAME/TXT内容）
-    value: 127.0.0.1
-    # 自定义 TTL
-    ttl: 60s
+  min-ttl: 600s
+  max-ttl: 24h
+  rule:
+      # 目标域名
+    - domain: test.example.com
+      # 记录类型（A/AAAA/CNAME/TXT）
+      type: A
+      # 重写值（IP/CNAME/TXT内容）
+      value: 127.0.0.1
+      # 自定义 TTL
+      ttl: 60s

@@ -1,12 +1,6 @@
 package godns
 
-import (
-	"log/slog"
-	"time"
-
-	"github.com/miekg/dns"
-)
-
+/*
 func (s *DnsServer) exchange(ri *RequestInfo, in *dns.Msg) (*dns.Msg, time.Duration, error) {
 	now := time.Now()
 	resp := new(dns.Msg)
@@ -85,7 +79,8 @@ func (s *DnsServer) exchange(ri *RequestInfo, in *dns.Msg) (*dns.Msg, time.Durat
 
 	return resp, time.Since(now), nil
 }
-
+*/
+/*
 func (s *DnsServer) exchangeSingle(ri *RequestInfo, qtype uint16, domain string) (*dns.Msg, time.Duration, error) {
 	now := time.Now()
 	qtypeString := dns.TypeToString[qtype]
@@ -165,3 +160,4 @@ func (s *DnsServer) exchangeSingle(ri *RequestInfo, qtype uint16, domain string)
 
 	return resp, time.Since(now), nil
 }
+*/

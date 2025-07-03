@@ -15,7 +15,6 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/pkg/bootstrap"
-	"github.com/taodev/stcp"
 )
 
 type Upstream interface {
@@ -98,38 +97,6 @@ func (c *DoHClient) Exchange(in *dns.Msg) (*dns.Msg, time.Duration, error) {
 	return reply, time.Since(now), nil
 }
 
-type StcpClient struct {
-	name     string
-	addr     string
-	password string
-}
-
-func (c StcpClient) Name() string {
-	return c.name
-}
-
-func (c *StcpClient) Exchange(in *dns.Msg) (*dns.Msg, time.Duration, error) {
-	now := time.Now()
-	client, err := stcp.Dial("tcp", c.addr, &stcp.Config{
-		Password: c.password,
-	})
-	if err != nil {
-		return nil, time.Since(now), err
-	}
-	defer client.Close()
-	if err := stcpWrite(client, in); err != nil {
-		return nil, time.Since(now), err
-	}
-
-	resp, err := stcpRead(client)
-	if err != nil {
-		return nil, time.Since(now), err
-	}
-	// 修复响应 ID
-	resp.Id = in.Id
-	return resp, time.Since(now), nil
-}
-
 type UpstreamManager struct {
 	upstreams map[string]Upstream
 	locker    sync.RWMutex
@@ -161,7 +128,7 @@ func (m *UpstreamManager) Add(name string, addr string) {
 	}
 
 	switch u.Scheme {
-	case "udp", "tcp":
+	case "udp":
 		if port == "" {
 			port = "53"
 		}
@@ -171,16 +138,6 @@ func (m *UpstreamManager) Add(name string, addr string) {
 			Host:   host,
 			Port:   port,
 			Scheme: u.Scheme,
-		}
-	case "stcp":
-		if port == "" {
-			port = "553"
-		}
-		slog.Debug("add stcp upstream", "name", name, "addr", net.JoinHostPort(ip, port))
-		m.upstreams[name] = &StcpClient{
-			name:     name,
-			addr:     net.JoinHostPort(ip, port),
-			password: u.User.Username(),
 		}
 	case "https":
 		if port == "" {
@@ -193,9 +150,9 @@ func (m *UpstreamManager) Add(name string, addr string) {
 			Host: host,
 			Port: port,
 		}
-	default:
-		// 暂时不支持的协议
-		slog.Error("unsupported upstream protocol", "protocol", u.Scheme, "addr", addr)
+		// default:
+		// 	// 暂时不支持的协议
+		// 	slog.Error("unsupported upstream protocol", "protocol", u.Scheme, "addr", addr)
 	}
 	slog.Info("add upstream", "name", name, "addr", addr)
 }

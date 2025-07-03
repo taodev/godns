@@ -28,16 +28,6 @@ type Options struct {
 	LogLevel string `yaml:"log-level" default:"info"`
 	// UDP 服务监听地址
 	UDP string `yaml:"udp"`
-	// TCP 服务监听地址
-	TCP string `yaml:"tcp"`
-
-	// STCP 配置
-	STCP *struct {
-		// STCP 服务监听地址
-		Addr string `yaml:"addr" default:"553"`
-		// 通信密码 (服务器与客户端一致)
-		Password string `yaml:"password"`
-	} `yaml:"stcp"`
 
 	// 入站配置
 	Inbounds struct {
@@ -85,11 +75,9 @@ type Options struct {
 	DefaultUpstream string `yaml:"default-upstream"`
 
 	// 路由配置
-	Route   []string      `yaml:"route"`
-	RouteV2 route.Options `yaml:"route-v2"`
+	Route route.Options `yaml:"route"`
 	// 重写配置
-	Rewrite   []RewriteOptions  `yaml:"rewrite"`
-	RewriteV2 []rewrite.Options `yaml:"rewrite-v2"`
+	Rewrite rewrite.Options `yaml:"rewrite"`
 }
 
 func (o *Options) Default() error {

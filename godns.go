@@ -20,20 +20,16 @@ type DnsServer struct {
 	Options *Options
 	logger  *slog.Logger
 
-	udpServer  *dns.Server
-	tcpServer  *dns.Server
-	stcpServer *StcpServer
-	dohServer  *http.Server
+	udpServer *dns.Server
+	dohServer *http.Server
 
 	inboundTCP  *tcp.Inbound
 	inboundTLS  *tcp.Inbound
 	inboundSTCP *tcp.Inbound
 
-	upstream *UpstreamManager
 	outbound *transport.Manager
 
-	router   *Router
-	routerV2 *route.Router
+	router *route.Router
 
 	rewriter *rewrite.Rewriter
 
@@ -78,20 +74,19 @@ func (s *DnsServer) init() (err error) {
 		return err
 	}
 
-	s.upstream = NewUpstreamManager(opts)
 	s.outbound = transport.NewManager(opts.Outbounds)
 
-	s.router, err = NewRouter(opts.Route, opts.DefaultUpstream)
-	if err != nil {
-		return err
-	}
-	err = s.router.Check(s.upstream)
-	if err != nil {
-		return err
-	}
+	// s.router, err = NewRouter(opts.Route, opts.DefaultUpstream)
+	// if err != nil {
+	// 	return err
+	// }
+	// err = s.router.Check(s.upstream)
+	// if err != nil {
+	// 	return err
+	// }
 
-	s.rewriter = rewrite.NewRewriter(opts.RewriteV2)
-	s.routerV2, err = route.NewRouter(&opts.RouteV2, s.outbound, s.rewriter)
+	s.rewriter = rewrite.NewRewriter(opts.Rewrite)
+	s.router, err = route.NewRouter(&opts.Route, s.outbound, s.rewriter)
 	if err != nil {
 		return err
 	}
@@ -106,20 +101,6 @@ func (s *DnsServer) init() (err error) {
 		}
 	}
 
-	if len(opts.TCP) > 0 {
-		// 初始化 tcp server
-		if err := s.setupTcpServer(); err != nil {
-			return err
-		}
-	}
-
-	if opts.STCP != nil {
-		// 初始化 stcp server
-		if err := s.setupStcpServer(); err != nil {
-			return err
-		}
-	}
-
 	if len(opts.DoH) > 0 {
 		// 初始化 doh server
 		if err := s.setupDohServer(); err != nil {
@@ -129,19 +110,19 @@ func (s *DnsServer) init() (err error) {
 
 	// new version
 	if opts.Inbounds.TCP != nil {
-		s.inboundTCP = tcp.NewInbound(context.Background(), s.routerV2, opts.Inbounds.TCP)
+		s.inboundTCP = tcp.NewInbound(context.Background(), s.router, opts.Inbounds.TCP)
 		if err = s.inboundTCP.Start(); err != nil {
 			return err
 		}
 	}
 	if opts.Inbounds.TLS != nil {
-		s.inboundTLS = tcp.NewInbound(context.Background(), s.routerV2, opts.Inbounds.TLS)
+		s.inboundTLS = tcp.NewInbound(context.Background(), s.router, opts.Inbounds.TLS)
 		if err = s.inboundTLS.Start(); err != nil {
 			return err
 		}
 	}
 	if opts.Inbounds.STCP != nil {
-		s.inboundSTCP = tcp.NewInbound(context.Background(), s.routerV2, opts.Inbounds.STCP)
+		s.inboundSTCP = tcp.NewInbound(context.Background(), s.router, opts.Inbounds.STCP)
 		if err = s.inboundSTCP.Start(); err != nil {
 			return err
 		}
@@ -164,14 +145,6 @@ func (s *DnsServer) Serve() (err error) {
 
 	if s.udpServer != nil {
 		s.udpServer.Shutdown()
-	}
-
-	if s.tcpServer != nil {
-		s.tcpServer.Shutdown()
-	}
-
-	if s.stcpServer != nil {
-		s.stcpServer.Shutdown()
 	}
 
 	if s.dohServer != nil {

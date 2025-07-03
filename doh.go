@@ -79,29 +79,31 @@ func (s *DnsServer) handleDoH(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unpack failed", http.StatusBadRequest)
 		return
 	}
-	ri := NewRequestInfoFromHTTP(r)
-	resp, _, err := s.exchange(ri, &req)
-	var reply []byte
-	if err != nil {
-		m := new(dns.Msg)
-		m.SetRcode(&req, dns.RcodeServerFailure)
-		if reply, err = m.Pack(); err != nil {
-			slog.Warn("DoH handle failed pack response", "err", err)
+	/*
+		ri := NewRequestInfoFromHTTP(r)
+		resp, _, err := s.exchange(ri, &req)
+		var reply []byte
+		if err != nil {
+			m := new(dns.Msg)
+			m.SetRcode(&req, dns.RcodeServerFailure)
+			if reply, err = m.Pack(); err != nil {
+				slog.Warn("DoH handle failed pack response", "err", err)
+			}
+			if _, err = w.Write(reply); err != nil {
+				slog.Debug("DoH response write failed", "err", err)
+			}
+			return
 		}
+
+		reply, err = resp.Pack()
+		if err != nil {
+			http.Error(w, "pack failed", http.StatusInternalServerError)
+			return
+		}
+
 		if _, err = w.Write(reply); err != nil {
 			slog.Debug("DoH response write failed", "err", err)
+			return
 		}
-		return
-	}
-
-	reply, err = resp.Pack()
-	if err != nil {
-		http.Error(w, "pack failed", http.StatusInternalServerError)
-		return
-	}
-
-	if _, err = w.Write(reply); err != nil {
-		slog.Debug("DoH response write failed", "err", err)
-		return
-	}
+	*/
 }
