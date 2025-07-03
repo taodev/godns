@@ -10,18 +10,6 @@ import (
 	"github.com/taodev/pkg/defaults"
 )
 
-// 重写配置
-type RewriteOptions struct {
-	// 域名
-	Domain string `yaml:"domain"`
-	// 类型
-	Type string `yaml:"type" default:"A"`
-	// 值
-	Value string `yaml:"value"`
-	// TTL
-	TTL time.Duration `yaml:"ttl" default:"60s"`
-}
-
 // 路由配置
 type Options struct {
 	// 日志级别（debug/info/warn/error）

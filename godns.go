@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/miekg/dns"
+	"github.com/taodev/godns/internal/cache"
 	"github.com/taodev/godns/internal/rewrite"
 	"github.com/taodev/godns/internal/route"
 	"github.com/taodev/godns/internal/transport"
@@ -33,7 +34,7 @@ type DnsServer struct {
 
 	rewriter *rewrite.Rewriter
 
-	cache *Cache
+	cache *cache.Cache
 
 	closeCh   chan struct{}
 	closeOnce sync.Once
@@ -69,22 +70,12 @@ func (s *DnsServer) init() (err error) {
 	slog.Info("bootstrap dns", "dns", opts.BootstrapDNS)
 
 	// 初始化缓存
-	s.cache, err = NewCache(opts.Cache.MaxCounters, opts.Cache.MaxCost, opts.Cache.BufferItems, opts.Cache.TTL)
+	s.cache, err = cache.New(opts.Cache.MaxCounters, opts.Cache.MaxCost, opts.Cache.BufferItems, opts.Cache.TTL)
 	if err != nil {
 		return err
 	}
 
 	s.outbound = transport.NewManager(opts.Outbounds)
-
-	// s.router, err = NewRouter(opts.Route, opts.DefaultUpstream)
-	// if err != nil {
-	// 	return err
-	// }
-	// err = s.router.Check(s.upstream)
-	// if err != nil {
-	// 	return err
-	// }
-
 	s.rewriter = rewrite.NewRewriter(opts.Rewrite)
 	s.router, err = route.NewRouter(&opts.Route, s.outbound, s.rewriter)
 	if err != nil {

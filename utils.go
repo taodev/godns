@@ -5,9 +5,6 @@ import (
 	"net/http"
 	"net/netip"
 	"strings"
-	"time"
-
-	"github.com/miekg/dns"
 )
 
 type RequestInfo struct {
@@ -42,58 +39,4 @@ func NewRequestInfoFromHTTP(r *http.Request) (ri *RequestInfo) {
 	ri.IP = realIP
 	ri.Inbound = "DoH"
 	return
-}
-
-func GetMinTTL(msg *dns.Msg) uint32 {
-	var minTTL uint32 = 0
-	for _, rr := range msg.Answer {
-		ttl := rr.Header().Ttl
-		if ttl == 0 {
-			continue
-		}
-		if minTTL == 0 || ttl < minTTL {
-			minTTL = ttl
-		}
-	}
-	if minTTL == 0 {
-		// 如果没有找到有效的TTL，使用默认值
-		minTTL = 60 // 默认TTL为60秒
-	}
-	return minTTL
-}
-
-// 覆写 dns.Msg 的 ttl
-func updateMsgTTL(msg *dns.Msg, minTTL, maxTTL time.Duration) {
-	max := uint32(maxTTL.Seconds())
-	min := uint32(minTTL.Seconds())
-	for _, rr := range msg.Answer {
-		if minTTL > 0 && rr.Header().Ttl < min {
-			rr.Header().Ttl = min
-		}
-		if maxTTL > 0 && rr.Header().Ttl > max {
-			rr.Header().Ttl = max
-		}
-	}
-	for _, rr := range msg.Ns {
-		if minTTL > 0 && rr.Header().Ttl < min {
-			rr.Header().Ttl = min
-		}
-	}
-	for _, rr := range msg.Extra {
-		if minTTL > 0 && rr.Header().Ttl < min {
-			rr.Header().Ttl = min
-		}
-	}
-}
-
-func shouldRecurse(msg *dns.Msg, qtype uint16) (recurse bool) {
-	for _, ans := range msg.Answer {
-		if ans.Header().Rrtype == qtype {
-			return false // 找到目标记录，停止
-		}
-		if ans.Header().Rrtype == dns.TypeCNAME {
-			recurse = true
-		}
-	}
-	return recurse // 既无目标类型，也无 CNAME，可能 NXDOMAIN 或空结果
 }

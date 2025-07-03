@@ -1,4 +1,4 @@
-package godns
+package cache
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/miekg/dns"
+	"github.com/taodev/godns/internal/utils"
 )
 
 type CacheValue struct {
@@ -31,7 +32,7 @@ func (c *Cache) Close() {
 func (c *Cache) Set(domain string, qtype uint16, msg *dns.Msg) {
 	ok := c.cache.SetWithTTL(fmt.Sprintf("%s-%d", domain, qtype), CacheValue{
 		M:        msg,
-		ExpireAt: time.Now().Unix() + int64(GetMinTTL(msg)),
+		ExpireAt: time.Now().Unix() + int64(utils.GetMinTTL(msg)),
 	}, 1, c.ttl)
 	if !ok {
 		slog.Warn("cache set failed", "domain", domain, "qtype", qtype)
@@ -46,7 +47,7 @@ func (c *Cache) Del(domain string, qtype uint16) {
 	c.cache.Del(fmt.Sprintf("%s-%d", domain, qtype))
 }
 
-func NewCache(maxCounters, maxCost, bufferItems int64, ttl time.Duration) (*Cache, error) {
+func New(maxCounters, maxCost, bufferItems int64, ttl time.Duration) (*Cache, error) {
 	cache, err := ristretto.NewCache(&ristretto.Config[string, CacheValue]{
 		NumCounters: maxCounters, // number of keys to track frequency of (10M).
 		MaxCost:     maxCost,     // maximum cost of cache (1GB).
