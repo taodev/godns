@@ -64,10 +64,9 @@ func (s *DnsServer) init() (err error) {
 	slog.Info("bootstrap dns: " + strings.Join(opts.BootstrapDNS, ", "))
 
 	// 初始化缓存
-	if s.cache, err = cache.New(opts.Cache.MaxCounters, opts.Cache.MaxCost, opts.Cache.BufferItems, opts.Cache.TTL); err != nil {
+	if s.cache, err = cache.New(&opts.Cache); err != nil {
 		return err
 	}
-
 	s.outbound = transport.NewManager(opts.Outbounds)
 	s.rewriter = rewrite.NewRewriter(opts.Rewrite)
 	if s.router, err = route.New(&opts.Route, s.outbound, s.rewriter, s.cache); err != nil {
@@ -76,6 +75,10 @@ func (s *DnsServer) init() (err error) {
 
 	s.closeCh = make(chan struct{})
 	s.errorCh = make(chan error)
+
+	if err = s.cache.Start(); err != nil {
+		return err
+	}
 
 	// new version
 	if opts.Inbounds.TCP != nil {
@@ -101,6 +104,8 @@ func (s *DnsServer) init() (err error) {
 }
 
 func (s *DnsServer) Serve() (err error) {
+	s.wg.Add(1)
+	defer s.wg.Done()
 	s.running = true
 	if err := s.init(); err != nil {
 		return err

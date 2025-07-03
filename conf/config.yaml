@@ -43,7 +43,7 @@ cache:
   # 缓存默认 TTL
   ttl: 24h
   # 最小覆盖 TTL (format: 1h, 1m, 1s)
-  min-ttl: 60s
+  min-ttl: 20s
   # 最大覆盖 TTL
   max-ttl: 24h
 
@@ -74,7 +74,7 @@ route:
 
 # 重写配置
 rewrite:
-  min-ttl: 600s
+  min-ttl: 10s
   max-ttl: 24h
   rule:
       # 目标域名
@@ -84,4 +84,4 @@ rewrite:
       # 重写值（IP/CNAME/TXT内容）
       value: 127.0.0.1
       # 自定义 TTL
-      ttl: 60s
+      ttl: 5s

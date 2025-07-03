@@ -39,6 +39,7 @@ func New(options *Options, outbound adapter.OutboundManager, rewriter *rewrite.R
 		rewriter: rewriter,
 		cache:    cache,
 	}
+	cache.SetQuery(router)
 	router.endpoint, _ = outbound.Get(options.Default)
 	for _, opt := range options.Rules {
 		matcher, err := geodb.LoadRule(opt)
@@ -76,14 +77,26 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 	// 	slog.Info("cache", "upstream", "cache", "domain", q.Name, "qtype", dns.TypeToString[q.Qtype], "inbound", inbound, "client", ip)
 	// 	return resp, nil
 	// }
+	cv, ok := r.cache.GetAndUpdate(q.Name, q.Qtype)
+	if ok {
+		resp = cv.M.Copy()
+		resp.SetReply(request)
+		slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", "cache", "ip", ip)
+		return resp, nil
+	}
 
 	resp, outboundTag, err := r.Resolve(request)
 	if err != nil {
 		return nil, err
 	}
 
-	slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", outboundTag, "ip", ip)
+	if resp.Rcode != dns.RcodeSuccess {
+		return resp, nil
+	}
 
+	// 缓存
+	r.cache.Set(q.Name, q.Qtype, resp)
+	slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", outboundTag, "ip", ip)
 	return resp, nil
 }
 

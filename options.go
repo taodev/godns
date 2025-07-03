@@ -2,8 +2,8 @@ package godns
 
 import (
 	"log/slog"
-	"time"
 
+	"github.com/taodev/godns/internal/cache"
 	"github.com/taodev/godns/internal/rewrite"
 	"github.com/taodev/godns/internal/route"
 	"github.com/taodev/godns/internal/transport/tcp"
@@ -37,20 +37,7 @@ type Options struct {
 	BootstrapDNS []string `yaml:"bootstrap-dns" default:"[223.5.5.5, 223.6.6.6]"`
 
 	// 缓存配置
-	Cache struct {
-		// 最大缓存条目数
-		MaxCounters int64 `yaml:"max-counters" default:"10000"`
-		// 最大缓存成本（与条目大小相关）
-		MaxCost int64 `yaml:"max-cost" default:"10000"`
-		// 写缓存数量
-		BufferItems int64 `yaml:"buffer-items" default:"64"`
-		// 缓存默认 TTL
-		TTL time.Duration `yaml:"ttl" default:"24h"`
-		// 最小覆盖 TTL (format: 1h, 1m, 1s)
-		MinTTL time.Duration `yaml:"min-ttl" default:"60s"` // 覆盖最小 TTL 值
-		// 最大覆盖 TTL (format: 1h, 1m, 1s)
-		MaxTTL time.Duration `yaml:"max-ttl" default:"24h"` // 覆盖最大 TTL
-	} `yaml:"cache"`
+	Cache cache.Options `yaml:"cache"`
 
 	// 上游配置
 	Upstream  map[string]string `yaml:"upstream"`

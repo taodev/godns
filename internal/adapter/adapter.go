@@ -26,3 +26,7 @@ type OutboundManager interface {
 type Router interface {
 	Exchange(request *dns.Msg, inbound string, ip string) (response *dns.Msg, err error)
 }
+
+type DnsQuery interface {
+	Resolve(in *dns.Msg) (resp *dns.Msg, outboundTag string, err error)
+}
