@@ -45,7 +45,7 @@ outbound:
   stcpdns: stcp://123456@223.5.5.5:553
   httpsdns: https://dns.alidns.com/dns-query
 
-  # 路由配置
+# 路由配置
 route:
   block-aaaa: true
   rules:
