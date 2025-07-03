@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net"
+	"net/netip"
 
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/adapter"
@@ -70,7 +71,8 @@ func (i *Inbound) handlePacket(data []byte, addr net.Addr) {
 		slog.Warn("Failed to unpack DNS message", "error", err)
 		return
 	}
-	resp, err := i.router.Exchange(msg, i.options.Type, addr.String())
+	raddr, _ := netip.ParseAddrPort(addr.String())
+	resp, err := i.router.Exchange(msg, i.options.Type, raddr.Addr().String())
 	if err != nil {
 		slog.Warn("DNS exchange error", "error", err)
 		return
