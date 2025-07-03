@@ -108,8 +108,17 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload assets
+      - name: Upload develop
+        if: github.ref == 'refs/heads/main'
         run: |
-          gh release create ${{ env.TAG_NAME }} --generate-notes ${{ env.LATEST_FLAG }} --title "${{ env.RELEASE_NAME }}" dist/*
+          # 覆盖旧版本: 先删除已有的develop发布 (忽略不存在的错误)
+          gh release delete -y "develop" || true
+          gh release create develop --prerelease --generate-notes --title "develop" dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload tags
+        if: github.ref == 'refs/tags/v*'
+        run: |
+          # gh release create ${GITHUB_REF_NAME} --generate-notes --latest --title "${GITHUB_REF_NAME}" dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
