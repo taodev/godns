@@ -14,8 +14,6 @@ import (
 type Options struct {
 	// 日志级别（debug/info/warn/error）
 	LogLevel string `yaml:"log-level" default:"info"`
-	// UDP 服务监听地址
-	UDP string `yaml:"udp"`
 
 	// 入站配置
 	Inbounds struct {
@@ -27,8 +25,6 @@ type Options struct {
 		STCP *tcp.Options `yaml:"stcp"`
 	} `yaml:"inbound"`
 
-	// DoH 服务监听地址
-	DoH string `yaml:"doh"`
 	// HTTPS 证书路径（可选，启用 TLS）
 	Cert string `yaml:"cert"`
 	// HTTPS 私钥路径（可选）

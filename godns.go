@@ -3,11 +3,10 @@ package godns
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"os"
+	"strings"
 	"sync"
 
-	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/cache"
 	"github.com/taodev/godns/internal/rewrite"
 	"github.com/taodev/godns/internal/route"
@@ -21,25 +20,20 @@ type DnsServer struct {
 	Options *Options
 	logger  *slog.Logger
 
-	udpServer *dns.Server
-	dohServer *http.Server
-
 	inboundTCP  *tcp.Inbound
 	inboundTLS  *tcp.Inbound
 	inboundSTCP *tcp.Inbound
 
 	outbound *transport.Manager
-
-	router *route.Router
-
+	router   *route.Router
 	rewriter *rewrite.Rewriter
-
-	cache *cache.Cache
+	cache    *cache.Cache
 
 	closeCh   chan struct{}
 	closeOnce sync.Once
 	errorCh   chan error
 	wg        sync.WaitGroup
+
 	// 运行状态
 	running bool
 }
@@ -67,37 +61,21 @@ func (s *DnsServer) init() (err error) {
 	if err := bootstrap.SetDNS(opts.BootstrapDNS); err != nil {
 		return err
 	}
-	slog.Info("bootstrap dns", "dns", opts.BootstrapDNS)
+	slog.Info("bootstrap dns: " + strings.Join(opts.BootstrapDNS, ", "))
 
 	// 初始化缓存
-	s.cache, err = cache.New(opts.Cache.MaxCounters, opts.Cache.MaxCost, opts.Cache.BufferItems, opts.Cache.TTL)
-	if err != nil {
+	if s.cache, err = cache.New(opts.Cache.MaxCounters, opts.Cache.MaxCost, opts.Cache.BufferItems, opts.Cache.TTL); err != nil {
 		return err
 	}
 
 	s.outbound = transport.NewManager(opts.Outbounds)
 	s.rewriter = rewrite.NewRewriter(opts.Rewrite)
-	s.router, err = route.NewRouter(&opts.Route, s.outbound, s.rewriter)
-	if err != nil {
+	if s.router, err = route.New(&opts.Route, s.outbound, s.rewriter, s.cache); err != nil {
 		return err
 	}
 
 	s.closeCh = make(chan struct{})
 	s.errorCh = make(chan error)
-
-	if len(opts.UDP) > 0 {
-		// 初始化 udp server
-		if err := s.setupUdpServer(); err != nil {
-			return err
-		}
-	}
-
-	if len(opts.DoH) > 0 {
-		// 初始化 doh server
-		if err := s.setupDohServer(); err != nil {
-			return err
-		}
-	}
 
 	// new version
 	if opts.Inbounds.TCP != nil {
@@ -132,16 +110,6 @@ func (s *DnsServer) Serve() (err error) {
 	case err = <-s.errorCh:
 		s.close()
 	case <-s.closeCh:
-	}
-
-	if s.udpServer != nil {
-		s.udpServer.Shutdown()
-	}
-
-	if s.dohServer != nil {
-		if err := s.dohServer.Shutdown(context.Background()); err != nil {
-			slog.Error("doh server shutdown error", slog.Any("err", err))
-		}
 	}
 
 	// new version

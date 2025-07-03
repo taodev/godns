@@ -24,7 +24,8 @@ geosite: geosite.dat
 #   password: 123456
 
 inbound:
-  tcp: { type: 'tcp', addr: ':553' }
+  tcp: { type: 'tcp', addr: ':55' }
+  stcp: { type: 'stcp', addr: ':553', password: '123456' }
 
 # Bootstrap DNS 服务器
 bootstrap-dns:

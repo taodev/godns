@@ -7,6 +7,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/adapter"
+	"github.com/taodev/godns/internal/cache"
 	"github.com/taodev/godns/internal/rewrite"
 	"github.com/taodev/godns/internal/utils"
 	"github.com/taodev/pkg/geodb"
@@ -27,14 +28,16 @@ type Router struct {
 	outbound adapter.OutboundManager
 	endpoint adapter.Outbound
 	rewriter *rewrite.Rewriter
+	cache    *cache.Cache
 }
 
-func NewRouter(options *Options, outbound adapter.OutboundManager, rewriter *rewrite.Rewriter) (*Router, error) {
+func New(options *Options, outbound adapter.OutboundManager, rewriter *rewrite.Rewriter, cache *cache.Cache) (*Router, error) {
 	router := &Router{
 		options:  options,
 		rules:    make([]*geodb.Rule, 0),
 		outbound: outbound,
 		rewriter: rewriter,
+		cache:    cache,
 	}
 	router.endpoint, _ = outbound.Get(options.Default)
 	for _, opt := range options.Rules {
@@ -68,19 +71,37 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 		return rewrite, nil
 	}
 
+	// // 查询缓存
+	// if resp, ok := r.cache.Get(q.Name, q.Qtype); err == nil {
+	// 	slog.Info("cache", "upstream", "cache", "domain", q.Name, "qtype", dns.TypeToString[q.Qtype], "inbound", inbound, "client", ip)
+	// 	return resp, nil
+	// }
+
+	resp, outboundTag, err := r.Resolve(request)
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", outboundTag, "ip", ip)
+
+	return resp, nil
+}
+
+func (r *Router) Resolve(in *dns.Msg) (resp *dns.Msg, outboundTag string, err error) {
+	q := in.Question[0]
 	outbound := r.Route(q.Name)
 	if outbound == nil {
-		return utils.NewMsgSERVFAIL(request), nil
+		return utils.NewMsgSERVFAIL(in), "", nil
 	}
 	req := new(dns.Msg)
 	req.SetQuestion(q.Name, q.Qtype)
 	req.RecursionDesired = true
 	if resp, _, err = outbound.Exchange(req); err != nil {
-		return utils.NewMsgSERVFAIL(request), err
+		return utils.NewMsgSERVFAIL(in), "", err
 	}
 	// 递归查询结果判断
 	if r.shouldRecurse(resp, q.Qtype) {
-		return utils.NewMsgNXDOMAIN(request), nil
+		return utils.NewMsgNXDOMAIN(in), "", nil
 	}
 	var answer []dns.RR
 	for _, rr := range resp.Answer {
@@ -90,13 +111,12 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 		}
 		resp.Answer = answer
 	}
-	resp.SetReply(request)
+	resp.SetReply(in)
 	resp.Authoritative = true
 	resp.RecursionAvailable = true
-	resp.Id = request.Id
+	resp.Id = in.Id
 	r.rewriter.UpdateTTL(resp)
-	slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", outbound.Tag(), "ip", ip)
-	return resp, nil
+	return resp, outbound.Tag(), nil
 }
 
 func (r *Router) Route(domain string) (outbound adapter.Outbound) {

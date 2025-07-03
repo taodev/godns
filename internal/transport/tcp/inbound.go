@@ -24,7 +24,6 @@ const (
 
 type Options struct {
 	Type     string `yaml:"type"`
-	Tag      string `yaml:"tag"`
 	Addr     string `yaml:"addr"`
 	Password string `yaml:"password"`
 	CertFile string `yaml:"cert_file"`
@@ -32,7 +31,6 @@ type Options struct {
 }
 
 type Inbound struct {
-	tag      string
 	options  *Options
 	listener net.Listener
 	router   *route.Router
@@ -42,7 +40,6 @@ type Inbound struct {
 
 func NewInbound(ctx context.Context, router *route.Router, options *Options) *Inbound {
 	return &Inbound{
-		tag:     options.Tag,
 		router:  router,
 		options: options,
 	}
@@ -73,6 +70,7 @@ func (h *Inbound) Start() (err error) {
 	h.running.Store(true)
 	h.wait.Add(1)
 	go h.handleAccept()
+	slog.Info(fmt.Sprintf("[inbound] %s: %s started", h.options.Type, h.options.Addr))
 	return nil
 }
 
@@ -122,7 +120,7 @@ func (h *Inbound) handleConn(conn net.Conn) {
 		if req, err = read(conn); err != nil {
 			return
 		}
-		if resp, err = h.router.Exchange(req, h.tag, conn.RemoteAddr().String()); err != nil {
+		if resp, err = h.router.Exchange(req, h.options.Type, conn.RemoteAddr().String()); err != nil {
 			resp = utils.NewMsgSERVFAIL(req)
 		}
 		if err = write(conn, resp); err != nil {

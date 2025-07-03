@@ -64,7 +64,6 @@ func (m *Manager) Add(tag string, addr string) {
 		// 暂时不支持的协议
 		slog.Error("unsupported upstream protocol", "protocol", u.Scheme, "addr", addr)
 	}
-	slog.Info("add outbound", "tag", tag, "addr", addr)
 }
 
 // 获取 Outbound
