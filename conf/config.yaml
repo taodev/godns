@@ -1,11 +1,11 @@
 # 日志级别（debug/info/warn/error）
 log-level: debug
-# UDP 服务监听地址（默认端口 53）
-udp: :53
-# TCP 服务监听地址（可选）
-tcp: :53
-# 是否禁用 AAAA 记录（IPv6）
-block-aaaa: true
+# # UDP 服务监听地址（默认端口 53）
+# udp: :53
+# # TCP 服务监听地址（可选）
+# tcp: :53
+# # 是否禁用 AAAA 记录（IPv6）
+# block-aaaa: true
 # HTTPS 证书路径（可选，启用 TLS）
 #cert: conf/cert.pem
 # HTTPS 私钥路径（可选）
@@ -16,12 +16,15 @@ geosite: geosite.dat
 # DoH 服务监听地址
 #doh: :443
 
-# STCP 配置
-stcp:
-  # STCP 服务监听地址
-  addr: :553
-  # 通信密码（需与客户端一致）
-  password: 123456
+# # STCP 配置
+# stcp:
+#   # STCP 服务监听地址
+#   addr: :553
+#   # 通信密码（需与客户端一致）
+#   password: 123456
+
+inbound:
+  tcp: { type: 'tcp', addr: ':553' }
 
 # Bootstrap DNS 服务器
 bootstrap-dns:
@@ -54,19 +57,44 @@ upstream:
 # 默认上游（未配置时使用第一个）
 default-upstream: mydns
 
+# 上游配置
+outbound:
+  # UDP 上游（自动补全为 udp://223.5.5.5:53）
+  alidns: tls://223.5.5.5:853
+  mydns: stcp://123456@127.0.0.1:5053
+
 # 路由配置
 route:
-  # 匹配后缀的域名使用 mydns
-  - mydns(suffix("github.com"))
-  # 阿里云相关域名使用 alidns
-  - alidns(geosite("aliyun"), suffix("aliyun.com"))
-  # GitHub/Google 域名使用 mydns
-  - mydns(geosite("github", "google"))
-  # 国内域名使用 alidns
-  - alidns(geosite("cn"))
+  # # 匹配后缀的域名使用 mydns
+  # - mydns(suffix("github.com"))
+  # # 阿里云相关域名使用 alidns
+  # - alidns(geosite("aliyun"), suffix("aliyun.com"))
+  # # GitHub/Google 域名使用 mydns
+  # - mydns(geosite("github", "google"))
+  # # 国内域名使用 alidns
+  # - alidns(geosite("cn"))
+
+  # 路由配置
+route-v2:
+  block-aaaa: true
+  rules:
+    # 国内域名使用 alidns
+    - alidns(geosite("cn"))
+  default: mydns
 
 # 重写配置
 rewrite:
+    # 目标域名
+  - domain: test.example.com
+    # 记录类型（A/AAAA/CNAME/TXT）
+    type: A
+    # 重写值（IP/CNAME/TXT内容）
+    value: 127.0.0.1
+    # 自定义 TTL
+    ttl: 60s
+
+# 重写配置
+rewrite-v2:
     # 目标域名
   - domain: test.example.com
     # 记录类型（A/AAAA/CNAME/TXT）

@@ -4,6 +4,9 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/taodev/godns/internal/rewrite"
+	"github.com/taodev/godns/internal/route"
+	"github.com/taodev/godns/internal/transport/tcp"
 	"github.com/taodev/pkg/defaults"
 )
 
@@ -36,6 +39,16 @@ type Options struct {
 		Password string `yaml:"password"`
 	} `yaml:"stcp"`
 
+	// 入站配置
+	Inbounds struct {
+		// TCP 入站配置
+		TCP *tcp.Options `yaml:"tcp"`
+		// TLS 入站配置
+		TLS *tcp.Options `yaml:"tls"`
+		// STCP 入站配置
+		STCP *tcp.Options `yaml:"stcp"`
+	} `yaml:"inbound"`
+
 	// DoH 服务监听地址
 	DoH string `yaml:"doh"`
 	// HTTPS 证书路径（可选，启用 TLS）
@@ -66,14 +79,17 @@ type Options struct {
 	} `yaml:"cache"`
 
 	// 上游配置
-	Upstream map[string]string `yaml:"upstream"`
+	Upstream  map[string]string `yaml:"upstream"`
+	Outbounds map[string]string `yaml:"outbound"`
 	// 默认上游（未配置时使用第一个）
 	DefaultUpstream string `yaml:"default-upstream"`
 
 	// 路由配置
-	Route []string `yaml:"route"`
+	Route   []string      `yaml:"route"`
+	RouteV2 route.Options `yaml:"route-v2"`
 	// 重写配置
-	Rewrite []RewriteOptions `yaml:"rewrite"`
+	Rewrite   []RewriteOptions  `yaml:"rewrite"`
+	RewriteV2 []rewrite.Options `yaml:"rewrite-v2"`
 }
 
 func (o *Options) Default() error {

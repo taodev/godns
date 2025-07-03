@@ -7,7 +7,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.2.0
 	github.com/miekg/dns v1.1.66
 	github.com/taodev/pkg v0.1.3
-	github.com/taodev/stcp v0.1.0
+	github.com/taodev/stcp v0.1.3
 	gopkg.in/yaml.v3 v3.0.1
 )
 

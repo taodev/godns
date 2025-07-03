@@ -8,6 +8,10 @@ import (
 	"sync"
 
 	"github.com/miekg/dns"
+	"github.com/taodev/godns/internal/rewrite"
+	"github.com/taodev/godns/internal/route"
+	"github.com/taodev/godns/internal/transport"
+	"github.com/taodev/godns/internal/transport/tcp"
 	"github.com/taodev/godns/pkg/bootstrap"
 	"github.com/taodev/pkg/geodb"
 )
@@ -21,9 +25,17 @@ type DnsServer struct {
 	stcpServer *StcpServer
 	dohServer  *http.Server
 
-	upstream *UpstreamManager
+	inboundTCP  *tcp.Inbound
+	inboundTLS  *tcp.Inbound
+	inboundSTCP *tcp.Inbound
 
-	router *Router
+	upstream *UpstreamManager
+	outbound *transport.Manager
+
+	router   *Router
+	routerV2 *route.Router
+
+	rewriter *rewrite.Rewriter
 
 	cache *Cache
 
@@ -67,11 +79,19 @@ func (s *DnsServer) init() (err error) {
 	}
 
 	s.upstream = NewUpstreamManager(opts)
+	s.outbound = transport.NewManager(opts.Outbounds)
+
 	s.router, err = NewRouter(opts.Route, opts.DefaultUpstream)
 	if err != nil {
 		return err
 	}
 	err = s.router.Check(s.upstream)
+	if err != nil {
+		return err
+	}
+
+	s.rewriter = rewrite.NewRewriter(opts.RewriteV2)
+	s.routerV2, err = route.NewRouter(&opts.RouteV2, s.outbound, s.rewriter)
 	if err != nil {
 		return err
 	}
@@ -107,6 +127,26 @@ func (s *DnsServer) init() (err error) {
 		}
 	}
 
+	// new version
+	if opts.Inbounds.TCP != nil {
+		s.inboundTCP = tcp.NewInbound(context.Background(), s.routerV2, opts.Inbounds.TCP)
+		if err = s.inboundTCP.Start(); err != nil {
+			return err
+		}
+	}
+	if opts.Inbounds.TLS != nil {
+		s.inboundTLS = tcp.NewInbound(context.Background(), s.routerV2, opts.Inbounds.TLS)
+		if err = s.inboundTLS.Start(); err != nil {
+			return err
+		}
+	}
+	if opts.Inbounds.STCP != nil {
+		s.inboundSTCP = tcp.NewInbound(context.Background(), s.routerV2, opts.Inbounds.STCP)
+		if err = s.inboundSTCP.Start(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -138,6 +178,17 @@ func (s *DnsServer) Serve() (err error) {
 		if err := s.dohServer.Shutdown(context.Background()); err != nil {
 			slog.Error("doh server shutdown error", slog.Any("err", err))
 		}
+	}
+
+	// new version
+	if s.inboundTCP != nil {
+		s.inboundTCP.Close()
+	}
+	if s.inboundTLS != nil {
+		s.inboundTLS.Close()
+	}
+	if s.inboundSTCP != nil {
+		s.inboundSTCP.Close()
 	}
 
 	s.cache.Close()
