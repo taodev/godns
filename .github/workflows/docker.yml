@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Docker
 
 on:
   push:
@@ -33,17 +33,16 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set image tags
+      - name: Set develop
+        if: github.ref == 'refs/heads/main'
         run: |
-          if [[ "${GITHUB_REF}" == "refs/tags/"* ]]; then
-            TAGS="ghcr.io/${{ github.repository }}:${GITHUB_REF_NAME},${{ github.repository }}:${GITHUB_REF_NAME}"
-            TAGS="ghcr.io/${{ github.repository }}:latest,${{ github.repository }}:latest"
-          elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            TAGS="ghcr.io/${{ github.repository }}:develop,${{ github.repository }}:develop"
-          else
-            echo "Unsupported ref: ${GITHUB_REF}"
-            exit 1
-          fi
+          TAGS="ghcr.io/${{ github.repository }}:develop,${{ github.repository }}:develop"
+          echo "TAGS=${TAGS}" >> "${GITHUB_ENV}"
+      - name: Set develop
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAGS="ghcr.io/${{ github.repository }}:${GITHUB_REF_NAME},${{ github.repository }}:${GITHUB_REF_NAME}"
+          TAGS="ghcr.io/${{ github.repository }}:latest,${{ github.repository }}:latest"
           echo "TAGS=${TAGS}" >> "${GITHUB_ENV}"
 
       - name: Build and Push Docker image
