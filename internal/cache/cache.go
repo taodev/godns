@@ -23,6 +23,8 @@ type Options struct {
 	TTL time.Duration `yaml:"ttl" default:"24h"`
 	// 缓存线程数
 	Threads int `yaml:"threads" default:"5"`
+	// 重新请求 TTL
+	RefreshTTL time.Duration `yaml:"refresh-ttl" default:"5m"`
 }
 
 type CacheValue struct {
@@ -84,12 +86,9 @@ func (c *Cache) Close() {
 }
 
 func (c *Cache) Set(domain string, qtype uint16, msg *dns.Msg) {
-	ttl := utils.GetMinTTL(msg)
-	ttl = 10
 	ok := c.cache.SetWithTTL(fmt.Sprintf("%s-%d", domain, qtype), CacheValue{
-		M: msg.Copy(),
-		// ExpireAt: time.Now().Unix() + int64(utils.GetMinTTL(msg)),
-		ExpireAt: time.Now().Unix() + int64(ttl),
+		M:        msg.Copy(),
+		ExpireAt: time.Now().Add(c.opts.RefreshTTL).Unix(),
 	}, 1, c.opts.TTL)
 	if !ok {
 		slog.Warn("cache set failed", "domain", domain, "qtype", qtype)

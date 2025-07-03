@@ -8,6 +8,7 @@ import (
 	"log"
 	"log/slog"
 	"net"
+	"net/netip"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -120,7 +121,8 @@ func (h *Inbound) handleConn(conn net.Conn) {
 		if req, err = read(conn); err != nil {
 			return
 		}
-		if resp, err = h.router.Exchange(req, h.options.Type, conn.RemoteAddr().String()); err != nil {
+		raddr, _ := netip.ParseAddrPort(conn.RemoteAddr().String())
+		if resp, err = h.router.Exchange(req, h.options.Type, raddr.Addr().String()); err != nil {
 			resp = utils.NewMsgSERVFAIL(req)
 		}
 		if err = write(conn, resp); err != nil {

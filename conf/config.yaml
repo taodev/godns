@@ -1,28 +1,9 @@
 # 日志级别（debug/info/warn/error）
 log-level: debug
-# # UDP 服务监听地址（默认端口 53）
-# udp: :53
-# # TCP 服务监听地址（可选）
-# tcp: :53
-# # 是否禁用 AAAA 记录（IPv6）
-# block-aaaa: true
-# HTTPS 证书路径（可选，启用 TLS）
-#cert: conf/cert.pem
-# HTTPS 私钥路径（可选）
-#key: conf/key.pem
 # 自定义 GeoSite 路径（可选）
 geosite: geosite.dat
 
-# DoH 服务监听地址
-#doh: :443
-
-# # STCP 配置
-# stcp:
-#   # STCP 服务监听地址
-#   addr: :553
-#   # 通信密码（需与客户端一致）
-#   password: 123456
-
+# 入站配置
 inbound:
   tcp: { type: 'tcp', addr: ':55' }
   tls: { type: 'tls', addr: ':853', cert: 'conf/cert.pem', key: 'conf/key.pem' }
@@ -49,24 +30,18 @@ cache:
   min-ttl: 20s
   # 最大覆盖 TTL
   max-ttl: 24h
+  # 缓存线程数
+  threads: 5
+  # 重新请求 TTL
+  refresh-ttl: 5m
 
-# 上游配置
-upstream:
-  # UDP 上游（自动补全为 udp://223.5.5.5:53）
-  alidns: 223.5.5.5
-  # 支持域名（自动通过 bootstrap DNS 解析）
-  googledns: dns.google
-  # STCP 上游（密码:123456）
-  mydns: stcp://123456@127.0.0.1:553
-  httpsdns: https://dns.alidns.com
-# 默认上游（未配置时使用第一个）
-default-upstream: mydns
-
-# 上游配置
+# 出站配置
 outbound:
   # UDP 上游（自动补全为 udp://223.5.5.5:53）
-  alidns: tls://223.5.5.5:853
-  mydns: stcp://123456@127.0.0.1:5053
+  # udpdns: 223.5.5.5:53
+  tcpdns: tcp://223.5.5.5:53
+  tlsdns: tls://223.5.5.5:853
+  stcpdns: stcp://123456@223.5.5.5:553
   httpsdns: https://dns.alidns.com/dns-query
 
   # 路由配置

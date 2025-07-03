@@ -77,13 +77,13 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 	if ok {
 		resp = cv.M.Copy()
 		resp.SetReply(request)
-		slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", "cache", "ip", ip)
+		slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "inbound", inbound, "outbound", "cache", "ip", ip)
 		return resp, nil
 	}
 
 	resp, outboundTag, err := r.Resolve(request)
 	if err != nil {
-		slog.Debug("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", "error", err)
+		slog.Debug("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", outboundTag, "error", err)
 		return nil, err
 	}
 
