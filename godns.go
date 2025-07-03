@@ -11,7 +11,9 @@ import (
 	"github.com/taodev/godns/internal/rewrite"
 	"github.com/taodev/godns/internal/route"
 	"github.com/taodev/godns/internal/transport"
+	"github.com/taodev/godns/internal/transport/http"
 	"github.com/taodev/godns/internal/transport/tcp"
+	"github.com/taodev/godns/internal/utils"
 	"github.com/taodev/godns/pkg/bootstrap"
 	"github.com/taodev/pkg/geodb"
 )
@@ -20,9 +22,11 @@ type DnsServer struct {
 	Options *Options
 	logger  *slog.Logger
 
-	inboundTCP  *tcp.Inbound
-	inboundTLS  *tcp.Inbound
-	inboundSTCP *tcp.Inbound
+	inboundTCP   *tcp.Inbound
+	inboundTLS   *tcp.Inbound
+	inboundSTCP  *tcp.Inbound
+	inboundHTTP  *http.Inbound
+	inboundHTTPS *http.Inbound
 
 	outbound *transport.Manager
 	router   *route.Router
@@ -82,20 +86,37 @@ func (s *DnsServer) init() (err error) {
 
 	// new version
 	if opts.Inbounds.TCP != nil {
+		opts.Inbounds.TCP.Type = utils.TypeTCP
 		s.inboundTCP = tcp.NewInbound(context.Background(), s.router, opts.Inbounds.TCP)
 		if err = s.inboundTCP.Start(); err != nil {
 			return err
 		}
 	}
 	if opts.Inbounds.TLS != nil {
+		opts.Inbounds.TLS.Type = utils.TypeTLS
 		s.inboundTLS = tcp.NewInbound(context.Background(), s.router, opts.Inbounds.TLS)
 		if err = s.inboundTLS.Start(); err != nil {
 			return err
 		}
 	}
 	if opts.Inbounds.STCP != nil {
+		opts.Inbounds.STCP.Type = utils.TypeSTCP
 		s.inboundSTCP = tcp.NewInbound(context.Background(), s.router, opts.Inbounds.STCP)
 		if err = s.inboundSTCP.Start(); err != nil {
+			return err
+		}
+	}
+	if opts.Inbounds.HTTP != nil {
+		opts.Inbounds.HTTP.Type = utils.TypeHTTP
+		s.inboundHTTP = http.NewInbound(context.Background(), s.router, opts.Inbounds.HTTP)
+		if err = s.inboundHTTP.Start(); err != nil {
+			return err
+		}
+	}
+	if opts.Inbounds.HTTPS != nil {
+		opts.Inbounds.HTTPS.Type = utils.TypeHTTPS
+		s.inboundHTTPS = http.NewInbound(context.Background(), s.router, opts.Inbounds.HTTPS)
+		if err = s.inboundHTTPS.Start(); err != nil {
 			return err
 		}
 	}
@@ -126,6 +147,12 @@ func (s *DnsServer) Serve() (err error) {
 	}
 	if s.inboundSTCP != nil {
 		s.inboundSTCP.Close()
+	}
+	if s.inboundHTTP != nil {
+		s.inboundHTTP.Close()
+	}
+	if s.inboundHTTPS != nil {
+		s.inboundHTTPS.Close()
 	}
 
 	s.cache.Close()

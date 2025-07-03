@@ -12,7 +12,9 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/adapter"
+	"github.com/taodev/godns/internal/transport/http"
 	"github.com/taodev/godns/internal/transport/tcp"
+	"github.com/taodev/godns/internal/utils"
 	"github.com/taodev/godns/pkg/bootstrap"
 )
 
@@ -58,8 +60,10 @@ func (m *Manager) Add(tag string, addr string) {
 	}
 
 	switch u.Scheme {
-	case "tcp", "tls", "stcp":
+	case utils.TypeTCP, utils.TypeTLS, utils.TypeSTCP:
 		m.outbounds[tag] = tcp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port), u.User.Username())
+	case utils.TypeHTTP, utils.TypeHTTPS:
+		m.outbounds[tag] = http.NewOutbound(tag, u.Scheme, addr)
 	default:
 		// 暂时不支持的协议
 		slog.Error("unsupported upstream protocol", "protocol", u.Scheme, "addr", addr)

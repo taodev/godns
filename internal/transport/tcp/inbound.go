@@ -23,11 +23,11 @@ const (
 )
 
 type Options struct {
-	Type     string `yaml:"type"`
+	Type     string `yaml:"-"`
 	Addr     string `yaml:"addr"`
 	Password string `yaml:"password"`
-	CertFile string `yaml:"cert_file"`
-	KeyFile  string `yaml:"key_file"`
+	Cert     string `yaml:"cert"`
+	Key      string `yaml:"key"`
 }
 
 type Inbound struct {
@@ -47,17 +47,17 @@ func NewInbound(ctx context.Context, router *route.Router, options *Options) *In
 
 func (h *Inbound) Start() (err error) {
 	switch h.options.Type {
-	case "tcp":
+	case utils.TypeTCP:
 		h.listener, err = net.Listen("tcp", h.options.Addr)
-	case "tls":
+	case utils.TypeTLS:
 		var cert tls.Certificate
-		if cert, err = tls.LoadX509KeyPair(h.options.CertFile, h.options.KeyFile); err != nil {
+		if cert, err = tls.LoadX509KeyPair(h.options.Cert, h.options.Key); err != nil {
 			return err
 		}
 		h.listener, err = tls.Listen("tcp", h.options.Addr, &tls.Config{
 			Certificates: []tls.Certificate{cert},
 		})
-	case "stcp":
+	case utils.TypeSTCP:
 		h.listener, err = stcp.Listen("tcp", h.options.Addr, &stcp.Config{
 			Password: h.options.Password,
 		})

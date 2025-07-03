@@ -6,6 +6,7 @@ import (
 	"github.com/taodev/godns/internal/cache"
 	"github.com/taodev/godns/internal/rewrite"
 	"github.com/taodev/godns/internal/route"
+	"github.com/taodev/godns/internal/transport/http"
 	"github.com/taodev/godns/internal/transport/tcp"
 	"github.com/taodev/pkg/defaults"
 )
@@ -23,6 +24,10 @@ type Options struct {
 		TLS *tcp.Options `yaml:"tls"`
 		// STCP 入站配置
 		STCP *tcp.Options `yaml:"stcp"`
+		// HTTP 入站配置
+		HTTP *http.Options `yaml:"http"`
+		// HTTPS 入站配置
+		HTTPS *http.Options `yaml:"https"`
 	} `yaml:"inbound"`
 
 	// HTTPS 证书路径（可选，启用 TLS）

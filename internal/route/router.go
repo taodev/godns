@@ -73,10 +73,6 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 	}
 
 	// // 查询缓存
-	// if resp, ok := r.cache.Get(q.Name, q.Qtype); err == nil {
-	// 	slog.Info("cache", "upstream", "cache", "domain", q.Name, "qtype", dns.TypeToString[q.Qtype], "inbound", inbound, "client", ip)
-	// 	return resp, nil
-	// }
 	cv, ok := r.cache.GetAndUpdate(q.Name, q.Qtype)
 	if ok {
 		resp = cv.M.Copy()
@@ -87,6 +83,7 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 
 	resp, outboundTag, err := r.Resolve(request)
 	if err != nil {
+		slog.Debug("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", "error", err)
 		return nil, err
 	}
 
@@ -96,7 +93,7 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 
 	// 缓存
 	r.cache.Set(q.Name, q.Qtype, resp)
-	slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", outboundTag, "ip", ip)
+	slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "inbound", inbound, "outbound", outboundTag, "ip", ip)
 	return resp, nil
 }
 

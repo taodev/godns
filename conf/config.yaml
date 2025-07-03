@@ -25,7 +25,10 @@ geosite: geosite.dat
 
 inbound:
   tcp: { type: 'tcp', addr: ':55' }
+  tls: { type: 'tls', addr: ':853', cert: 'conf/cert.pem', key: 'conf/key.pem' }
   stcp: { type: 'stcp', addr: ':553', password: '123456' }
+  http: { type: 'http', addr: ':80' }
+  https: { type: 'https', addr: ':443', cert: 'conf/cert.pem', key: 'conf/key.pem' }
 
 # Bootstrap DNS 服务器
 bootstrap-dns:
@@ -55,6 +58,7 @@ upstream:
   googledns: dns.google
   # STCP 上游（密码:123456）
   mydns: stcp://123456@127.0.0.1:553
+  httpsdns: https://dns.alidns.com
 # 默认上游（未配置时使用第一个）
 default-upstream: mydns
 
@@ -63,14 +67,15 @@ outbound:
   # UDP 上游（自动补全为 udp://223.5.5.5:53）
   alidns: tls://223.5.5.5:853
   mydns: stcp://123456@127.0.0.1:5053
+  httpsdns: https://dns.alidns.com/dns-query
 
   # 路由配置
 route:
   block-aaaa: true
   rules:
     # 国内域名使用 alidns
-    - alidns(geosite("cn"))
-  default: mydns
+    - httpsdns(geosite("cn"))
+  default: httpsdns
 
 # 重写配置
 rewrite:
