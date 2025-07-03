@@ -42,7 +42,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           TAGS="ghcr.io/${{ github.repository }}:${GITHUB_REF_NAME},${{ github.repository }}:${GITHUB_REF_NAME}"
-          TAGS="ghcr.io/${{ github.repository }}:latest,${{ github.repository }}:latest"
+          TAGS="${TAGS},ghcr.io/${{ github.repository }}:latest,${{ github.repository }}:latest"
           echo "TAGS=${TAGS}" >> "${GITHUB_ENV}"
 
       - name: Build and Push Docker image
