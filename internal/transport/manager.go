@@ -1,7 +1,7 @@
 package transport
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net"
@@ -63,12 +63,12 @@ func (m *Manager) Add(tag string, addr string) {
 
 	switch u.Scheme {
 	case utils.TypeTCP, utils.TypeTLS, utils.TypeSTCP:
-		privateKey, err := base64.RawStdEncoding.DecodeString(u.Query().Get("privateKey"))
+		privateKey, err := hex.DecodeString(u.Query().Get("privateKey"))
 		if err != nil {
 			slog.Error("invalid privateKey", "error", err)
 			return
 		}
-		serverPub, err := base64.RawStdEncoding.DecodeString(u.Query().Get("serverPub"))
+		serverPub, err := hex.DecodeString(u.Query().Get("serverPub"))
 		if err != nil {
 			slog.Error("invalid serverPub", "error", err)
 			return
