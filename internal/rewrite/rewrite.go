@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
+	"github.com/taodev/pkg/defaults"
 )
 
 // 重写配置
@@ -33,6 +34,7 @@ type Rewriter struct {
 }
 
 func NewRewriter(opts Options) *Rewriter {
+	defaults.Set(&opts)
 	return &Rewriter{
 		options: opts,
 	}
