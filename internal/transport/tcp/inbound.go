@@ -16,6 +16,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/route"
 	"github.com/taodev/godns/internal/utils"
+	"github.com/taodev/pkg/types"
 	"github.com/taodev/stcp"
 )
 
@@ -24,11 +25,12 @@ const (
 )
 
 type Options struct {
-	Type     string `yaml:"-"`
-	Addr     string `yaml:"addr"`
-	Password string `yaml:"password"`
-	Cert     string `yaml:"cert"`
-	Key      string `yaml:"key"`
+	Type       string       `yaml:"-"`
+	Addr       string       `yaml:"addr"`
+	PrivateKey types.Binary `yaml:"private-key"`
+	PublicKey  types.Binary `yaml:"public-key"`
+	Cert       string       `yaml:"cert"`
+	Key        string       `yaml:"key"`
 }
 
 type Inbound struct {
@@ -59,9 +61,12 @@ func (h *Inbound) Start() (err error) {
 			Certificates: []tls.Certificate{cert},
 		})
 	case utils.TypeSTCP:
-		h.listener, err = stcp.Listen("tcp", h.options.Addr, &stcp.Config{
-			Password: h.options.Password,
-		})
+		serverCtx, errCtx := stcp.NewServerContext()
+		serverCtx.PrivateKey = h.options.PrivateKey
+		if errCtx != nil {
+			return errCtx
+		}
+		h.listener, err = stcp.Listen("tcp", h.options.Addr, serverCtx)
 	default:
 		return fmt.Errorf("unknown inbound type: %s", h.options.Type)
 	}

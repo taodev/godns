@@ -22,7 +22,7 @@ type Outbound struct {
 	dialer dialer
 }
 
-func NewOutbound(tag, typ, addr, password string) adapter.Outbound {
+func NewOutbound(tag, typ, addr string, privateKey, serverPub []byte) adapter.Outbound {
 	out := &Outbound{
 		tag:  tag,
 		typ:  typ,
@@ -34,7 +34,13 @@ func NewOutbound(tag, typ, addr, password string) adapter.Outbound {
 	case "tls":
 		out.dialer = new(tls.Dialer)
 	case "stcp":
-		out.dialer = &stcp.Dialer{Config: &stcp.Config{Password: password}}
+		config, err := stcp.NewClientConfig()
+		if err != nil {
+			return nil
+		}
+		config.PrivateKey = privateKey
+		config.ServerPub = serverPub
+		out.dialer = &stcp.Dialer{Config: config}
 	}
 	return out
 }

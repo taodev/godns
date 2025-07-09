@@ -8,7 +8,7 @@ inbound:
   udp: { type: 'udp', addr: ':55' }
   tcp: { type: 'tcp', addr: ':55' }
   tls: { type: 'tls', addr: ':853', cert: 'conf/cert.pem', key: 'conf/key.pem' }
-  stcp: { type: 'stcp', addr: ':553', password: '123456' }
+  stcp: { type: 'stcp', addr: ':553', private-key: 'ITStuRCsyGdMJvrqAseeMO1rhCDshalZRPsvBBpWhmA' }
   http: { type: 'http', addr: ':80' }
   https: { type: 'https', addr: ':443', cert: 'conf/cert.pem', key: 'conf/key.pem' }
 
