@@ -3,6 +3,7 @@ package tcp
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -16,21 +17,18 @@ import (
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/route"
 	"github.com/taodev/godns/internal/utils"
-	"github.com/taodev/pkg/types"
 	"github.com/taodev/stcp"
 )
 
 const (
-	defaultTimeout = 10 * time.Second
+	defaultTimeout = 120 * time.Second
 )
 
 type Options struct {
-	Type       string       `yaml:"-"`
-	Addr       string       `yaml:"addr"`
-	PrivateKey types.Binary `yaml:"private-key"`
-	PublicKey  types.Binary `yaml:"public-key"`
-	Cert       string       `yaml:"cert"`
-	Key        string       `yaml:"key"`
+	Type string `yaml:"-"`
+	Addr string `yaml:"addr"`
+	Cert string `yaml:"cert"`
+	Key  string `yaml:"key"`
 }
 
 type Inbound struct {
@@ -62,7 +60,10 @@ func (h *Inbound) Start() (err error) {
 		})
 	case utils.TypeSTCP:
 		serverCtx, errCtx := stcp.NewServerContext()
-		serverCtx.PrivateKey = h.options.PrivateKey
+		if errCtx != nil {
+			return errCtx
+		}
+		serverCtx.PrivateKey, errCtx = base64.RawURLEncoding.DecodeString(h.options.Key)
 		if errCtx != nil {
 			return errCtx
 		}

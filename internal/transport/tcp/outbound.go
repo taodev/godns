@@ -3,6 +3,7 @@ package tcp
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"net"
 	"time"
 
@@ -22,7 +23,7 @@ type Outbound struct {
 	dialer dialer
 }
 
-func NewOutbound(tag, typ, addr string, privateKey, serverPub []byte) adapter.Outbound {
+func NewOutbound(tag, typ, addr string, privateKey, serverPub string) adapter.Outbound {
 	out := &Outbound{
 		tag:  tag,
 		typ:  typ,
@@ -38,8 +39,14 @@ func NewOutbound(tag, typ, addr string, privateKey, serverPub []byte) adapter.Ou
 		if err != nil {
 			return nil
 		}
-		config.PrivateKey = privateKey
-		config.ServerPub = serverPub
+		config.PrivateKey, err = base64.RawURLEncoding.DecodeString(privateKey)
+		if err != nil {
+			return nil
+		}
+		config.ServerPub, err = base64.RawURLEncoding.DecodeString(serverPub)
+		if err != nil {
+			return nil
+		}
 		out.dialer = &stcp.Dialer{Config: config}
 	}
 	return out

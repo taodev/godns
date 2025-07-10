@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net"
@@ -18,26 +17,20 @@ import (
 	"github.com/taodev/godns/internal/transport/udp"
 	"github.com/taodev/godns/internal/utils"
 	"github.com/taodev/godns/pkg/bootstrap"
-	"github.com/taodev/pkg/types"
 )
-
-type STCPConfig struct {
-	PrivateKey types.Binary `yaml:"private-key"`
-	PublicKey  types.Binary `yaml:"public-key"`
-}
 
 type Manager struct {
 	access  sync.RWMutex
 	started atomic.Bool
 
-	outbounds  map[string]adapter.Outbound
-	stcpConfig *STCPConfig
+	outbounds map[string]adapter.Outbound
+	stcpKey   string
 }
 
-func NewManager(opts map[string]string, stcpConfig *STCPConfig) *Manager {
+func NewManager(opts map[string]string, stcpKey string) *Manager {
 	m := &Manager{
-		outbounds:  make(map[string]adapter.Outbound),
-		stcpConfig: stcpConfig,
+		outbounds: make(map[string]adapter.Outbound),
+		stcpKey:   stcpKey,
 	}
 	for name, addr := range opts {
 		m.Add(name, addr)
@@ -71,21 +64,14 @@ func (m *Manager) Add(tag string, addr string) {
 
 	switch u.Scheme {
 	case utils.TypeTCP, utils.TypeTLS, utils.TypeSTCP:
-		privateKey, err := hex.DecodeString(u.Query().Get("privateKey"))
-		if err != nil {
-			slog.Error("invalid privateKey", "error", err)
-			return
-		}
+		privateKey := u.User.Username()
 		if len(privateKey) == 0 {
-			privateKey = []byte(m.stcpConfig.PrivateKey)
+			privateKey = m.stcpKey
 		}
-		serverPub, err := hex.DecodeString(u.Query().Get("serverPub"))
-		if err != nil {
-			slog.Error("invalid serverPub", "error", err)
+		serverPub := u.Query().Get("serverPub")
+		if u.Scheme == utils.TypeSTCP && len(serverPub) == 0 {
+			slog.Error("serverPub is required")
 			return
-		}
-		if len(serverPub) == 0 {
-			serverPub = []byte(m.stcpConfig.PublicKey)
 		}
 		m.outbounds[tag] = tcp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port), privateKey, serverPub)
 	case utils.TypeHTTP, utils.TypeHTTPS:
