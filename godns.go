@@ -73,7 +73,7 @@ func (s *DnsServer) init() (err error) {
 	if s.cache, err = cache.New(&opts.Cache); err != nil {
 		return err
 	}
-	s.outbound = transport.NewManager(opts.Outbounds)
+	s.outbound = transport.NewManager(opts.Outbounds, &opts.STCPConfig)
 	s.rewriter = rewrite.NewRewriter(opts.Rewrite)
 	if s.router, err = route.New(&opts.Route, s.outbound, s.rewriter, s.cache); err != nil {
 		return err
@@ -110,6 +110,9 @@ func (s *DnsServer) init() (err error) {
 	}
 	if opts.Inbounds.STCP != nil {
 		opts.Inbounds.STCP.Type = utils.TypeSTCP
+		if len(opts.Inbounds.STCP.PrivateKey) == 0 {
+			opts.Inbounds.STCP.PrivateKey = opts.STCPConfig.PrivateKey
+		}
 		s.inboundSTCP = tcp.NewInbound(context.Background(), s.router, opts.Inbounds.STCP)
 		if err = s.inboundSTCP.Start(); err != nil {
 			return err

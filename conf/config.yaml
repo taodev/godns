@@ -2,13 +2,18 @@
 log-level: debug
 # 自定义 GeoSite 路径（可选）
 geosite: geosite.dat
+# stcp 全局配置路径
+stcp-config: 
+  private-key: RLG3Y+26/LwW1dVJq9ixCuLMWbigrpLZgEzVcSR6GAo
+  public-key: Ys/P/QGdmJcXo5eT0DInWFgCYLwdbPV+jST5ZoG1DAg
 
 # 入站配置
 inbound:
   udp: { type: 'udp', addr: ':55' }
   tcp: { type: 'tcp', addr: ':55' }
   tls: { type: 'tls', addr: ':853', cert: 'conf/cert.pem', key: 'conf/key.pem' }
-  stcp: { type: 'stcp', addr: ':553', private-key: 'ITStuRCsyGdMJvrqAseeMO1rhCDshalZRPsvBBpWhmA' }
+  # stcp: { type: 'stcp', addr: ':553', private-key: 'ITStuRCsyGdMJvrqAseeMO1rhCDshalZRPsvBBpWhmA' }
+  stcp: { type: 'stcp', addr: ':553' }
   http: { type: 'http', addr: ':80' }
   https: { type: 'https', addr: ':443', cert: 'conf/cert.pem', key: 'conf/key.pem' }
 
@@ -42,7 +47,8 @@ outbound:
   udpdns: udp://223.5.5.5:53
   tcpdns: tcp://223.5.5.5:53
   tlsdns: tls://223.5.5.5:853
-  stcpdns: stcp://123456@223.5.5.5:553
+  # stcpdns: stcp://123456@223.5.5.5:553
+  stcpdns: stcp://dns.mydev.run:553/?serverPub=18cb9fa8a581843d738e5c0f1ecb1d67cdfb58838895c9fc909a84d2ba3f2b68
   httpsdns: https://dns.alidns.com/dns-query
 
 # 路由配置
@@ -50,8 +56,8 @@ route:
   block-aaaa: true
   rules:
     # 国内域名使用 alidns
-    - httpsdns(geosite("cn"))
-  default: httpsdns
+    - stcpdns(geosite("cn"))
+  default: stcpdns
 
 # 重写配置
 rewrite:

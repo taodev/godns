@@ -6,6 +6,7 @@ import (
 	"github.com/taodev/godns/internal/cache"
 	"github.com/taodev/godns/internal/rewrite"
 	"github.com/taodev/godns/internal/route"
+	"github.com/taodev/godns/internal/transport"
 	"github.com/taodev/godns/internal/transport/http"
 	"github.com/taodev/godns/internal/transport/tcp"
 	"github.com/taodev/godns/internal/transport/udp"
@@ -34,6 +35,9 @@ type Options struct {
 
 	// GeoSite 路径
 	GeoSite string `yaml:"geosite" default:"geosite.dat"`
+	// STCP 全局配置路径
+	STCPConfig transport.STCPConfig `yaml:"stcp-config"`
+
 	// Bootstrap DNS 服务器
 	BootstrapDNS []string `yaml:"bootstrap-dns" default:"[223.5.5.5, 223.6.6.6]"`
 	// 缓存配置
