@@ -121,3 +121,6 @@ func (h *Outbound) Exchange(req *dns.Msg) (resp *dns.Msg, rtt time.Duration, err
 	}
 	return resp, 0, nil
 }
+
+func (h *Outbound) Close() {
+}

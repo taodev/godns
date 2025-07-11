@@ -16,6 +16,7 @@ type Inbound interface {
 type Outbound interface {
 	Tag() string
 	Exchange(req *dns.Msg) (*dns.Msg, time.Duration, error)
+	Close()
 }
 
 type OutboundManager interface {

@@ -46,7 +46,7 @@ outbound:
   tcpdns: tcp://223.5.5.5
   tlsdns: tls://dns.alidns.com
   # stcpdns: stcp://123456@223.5.5.5:553
-  stcpdns: stcp://127.0.0.1:556/?serverPub=iIOSngq4lM0Z9LrcWsaPKazjjJ7b2HjhzgoCoSFSeyo
+  stcpdns: stcp://127.0.0.1:556/?serverPub=iIOSngq4lM0Z9LrcWsaPKazjjJ7b2HjhzgoCoSFSeyo&keepAlive=true
   httpsdns: https://dns.alidns.com/dns-query
 
 # 路由配置
@@ -54,8 +54,8 @@ route:
   block-aaaa: true
   rules:
     # 国内域名使用 alidns
-    - httpsdns(geosite("cn"))
-  default: udpdns
+    - stcpdns(geosite("cn"))
+  default: stcpdns
 
 # 重写配置
 rewrite:

@@ -78,19 +78,11 @@ func (m *Manager) Add(tag string, addr string) {
 		}
 		m.outbounds[tag] = tcp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port), host, "", "")
 	case utils.TypeSTCP:
-		if len(port) == 0 {
-			port = "553"
-		}
-		privateKey := u.User.Username()
-		if len(privateKey) == 0 {
-			privateKey = m.stcpKey
-		}
-		serverPub := u.Query().Get("serverPub")
-		if u.Scheme == utils.TypeSTCP && len(serverPub) == 0 {
-			slog.Error("serverPub is required")
+		m.outbounds[tag], err = tcp.NewOutboundSTCP(tag, addr, m.stcpKey)
+		if err != nil {
+			slog.Error("invalid outbound", "tag", tag, "error", err)
 			return
 		}
-		m.outbounds[tag] = tcp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port), host, privateKey, serverPub)
 	case utils.TypeHTTP, utils.TypeHTTPS:
 		m.outbounds[tag] = http.NewOutbound(tag, u.Scheme, addr, ip)
 	case utils.TypeUDP:
@@ -126,6 +118,12 @@ func (m *Manager) Exchange(tag string, in *dns.Msg) (*dns.Msg, time.Duration, er
 		return nil, 0, fmt.Errorf("outbound:%s not found", tag)
 	}
 	return outbound.Exchange(in)
+}
+
+func (m *Manager) Close() {
+	for _, outbound := range m.outbounds {
+		outbound.Close()
+	}
 }
 
 // func (m *Manager) Start(opts map[string]string) (err error) {

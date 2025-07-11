@@ -59,3 +59,6 @@ func (o *Outbound) Exchange(req *dns.Msg) (resp *dns.Msg, rtt time.Duration, err
 	resp.Id = req.Id
 	return resp, time.Since(now), nil
 }
+
+func (o *Outbound) Close() {
+}

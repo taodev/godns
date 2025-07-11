@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net"
 
@@ -16,8 +17,11 @@ func read(conn net.Conn) (req *dns.Msg, err error) {
 	if _, err = io.ReadFull(conn, buf[:2]); err != nil {
 		return nil, err
 	}
-	if length = binary.BigEndian.Uint16(buf[:2]); length == 0 || length > dns.MaxMsgSize {
-		return nil, err
+	if length = binary.BigEndian.Uint16(buf[:2]); length > dns.MaxMsgSize {
+		return nil, fmt.Errorf("invalid length: %d", length)
+	}
+	if length == 0 {
+		return nil, nil
 	}
 	if _, err = io.ReadFull(conn, buf[:length]); err != nil {
 		return nil, err

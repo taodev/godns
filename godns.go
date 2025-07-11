@@ -172,6 +172,10 @@ func (s *DnsServer) Serve() (err error) {
 
 	s.cache.Close()
 
+	if s.outbound != nil {
+		s.outbound.Close()
+	}
+
 	slog.Debug("dns server close")
 	return err
 }

@@ -121,11 +121,15 @@ func (h *Inbound) handleConn(conn net.Conn) {
 		resp *dns.Msg
 	)
 	for h.running.Load() {
-		if err = conn.SetDeadline(time.Now().Add(defaultTimeout)); err != nil {
+		if err = conn.SetDeadline(time.Now().Add(3 * time.Minute)); err != nil {
 			return
 		}
 		if req, err = read(conn); err != nil {
 			return
+		}
+		if req == nil {
+			slog.Info("recv ping", "addr", conn.RemoteAddr())
+			continue
 		}
 		raddr, _ := netip.ParseAddrPort(conn.RemoteAddr().String())
 		if resp, err = h.router.Exchange(req, h.options.Type, raddr.Addr().String()); err != nil {

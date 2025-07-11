@@ -1,6 +1,8 @@
 package utils
 
-import "github.com/miekg/dns"
+import (
+	"github.com/miekg/dns"
+)
 
 func GetMinTTL(msg *dns.Msg) uint32 {
 	var minTTL uint32 = 0
