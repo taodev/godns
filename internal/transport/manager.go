@@ -50,6 +50,10 @@ func (m *Manager) Add(tag string, addr string) {
 		slog.Error("invalid outbound", "addr", addr, "error", err)
 		return
 	}
+	scheme := u.Scheme
+	if len(scheme) == 0 {
+		scheme = utils.TypeUDP
+	}
 	host := u.Hostname()
 	port := u.Port()
 	ip := host
@@ -63,7 +67,20 @@ func (m *Manager) Add(tag string, addr string) {
 	}
 
 	switch u.Scheme {
-	case utils.TypeTCP, utils.TypeTLS, utils.TypeSTCP:
+	case utils.TypeTCP:
+		if len(port) == 0 {
+			port = "53"
+		}
+		m.outbounds[tag] = tcp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port), host, "", "")
+	case utils.TypeTLS:
+		if len(port) == 0 {
+			port = "853"
+		}
+		m.outbounds[tag] = tcp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port), host, "", "")
+	case utils.TypeSTCP:
+		if len(port) == 0 {
+			port = "553"
+		}
 		privateKey := u.User.Username()
 		if len(privateKey) == 0 {
 			privateKey = m.stcpKey
@@ -73,10 +90,13 @@ func (m *Manager) Add(tag string, addr string) {
 			slog.Error("serverPub is required")
 			return
 		}
-		m.outbounds[tag] = tcp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port), privateKey, serverPub)
+		m.outbounds[tag] = tcp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port), host, privateKey, serverPub)
 	case utils.TypeHTTP, utils.TypeHTTPS:
-		m.outbounds[tag] = http.NewOutbound(tag, u.Scheme, addr)
+		m.outbounds[tag] = http.NewOutbound(tag, u.Scheme, addr, ip)
 	case utils.TypeUDP:
+		if len(port) == 0 {
+			port = "53"
+		}
 		m.outbounds[tag] = udp.NewOutbound(tag, u.Scheme, net.JoinHostPort(ip, port))
 	default:
 		// 暂时不支持的协议

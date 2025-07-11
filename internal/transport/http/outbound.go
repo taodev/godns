@@ -2,36 +2,49 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/adapter"
+	"github.com/taodev/godns/internal/utils"
 )
 
 type Outbound struct {
-	tag  string
-	typ  string
-	url  string
-	host string
+	tag    string
+	typ    string
+	url    string
+	host   string
+	ipAddr string
 }
 
-func NewOutbound(tag, typ, addr string) adapter.Outbound {
+func NewOutbound(tag, typ, addr string, ip string) adapter.Outbound {
 	u, err := url.Parse(addr)
 	if err != nil {
 		slog.Error("parse http outbound url failed", "addr", addr, "error", err)
 		return nil
 	}
+	port := u.Port()
+	if len(port) == 0 {
+		if typ == utils.TypeHTTPS {
+			port = "443"
+		} else {
+			port = "80"
+		}
+	}
 	return &Outbound{
-		tag:  tag,
-		typ:  typ,
-		url:  addr,
-		host: u.Host,
+		tag:    tag,
+		typ:    typ,
+		url:    addr,
+		host:   u.Hostname(),
+		ipAddr: net.JoinHostPort(ip, port),
 	}
 }
 
@@ -76,6 +89,12 @@ func (h *Outbound) Exchange(req *dns.Msg) (resp *dns.Msg, rtt time.Duration, err
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				ServerName: h.host,
+			},
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				slog.Info("DialContext", "network", network, "addr", addr, "ipAddr", h.ipAddr)
+				// 固定连接 IP
+				dialer := &net.Dialer{Timeout: defaultTimeout}
+				return dialer.DialContext(ctx, network, h.ipAddr)
 			},
 		},
 	}

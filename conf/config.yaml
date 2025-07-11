@@ -42,9 +42,9 @@ cache:
 # 出站配置
 outbound:
   # UDP 上游（自动补全为 udp://223.5.5.5:53）
-  udpdns: udp://223.5.5.5:53
-  tcpdns: tcp://223.5.5.5:53
-  tlsdns: tls://223.5.5.5:853
+  udpdns: 223.5.5.5
+  tcpdns: tcp://223.5.5.5
+  tlsdns: tls://dns.alidns.com
   # stcpdns: stcp://123456@223.5.5.5:553
   stcpdns: stcp://127.0.0.1:556/?serverPub=iIOSngq4lM0Z9LrcWsaPKazjjJ7b2HjhzgoCoSFSeyo
   httpsdns: https://dns.alidns.com/dns-query
@@ -54,8 +54,8 @@ route:
   block-aaaa: true
   rules:
     # 国内域名使用 alidns
-    - stcpdns(geosite("cn"))
-  default: stcpdns
+    - httpsdns(geosite("cn"))
+  default: udpdns
 
 # 重写配置
 rewrite:

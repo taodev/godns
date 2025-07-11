@@ -3,13 +3,13 @@ package tcp
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"net"
 	"time"
 
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/adapter"
 	"github.com/taodev/stcp"
+	"github.com/taodev/stcp/key"
 )
 
 type dialer interface {
@@ -17,33 +17,39 @@ type dialer interface {
 }
 
 type Outbound struct {
-	tag    string
-	typ    string
-	addr   string
-	dialer dialer
+	tag      string
+	typ      string
+	addr     string
+	hostname string
+	dialer   dialer
 }
 
-func NewOutbound(tag, typ, addr string, privateKey, serverPub string) adapter.Outbound {
+func NewOutbound(tag, typ, addr string, hostname string, privateKey, serverPub string) adapter.Outbound {
 	out := &Outbound{
-		tag:  tag,
-		typ:  typ,
-		addr: addr,
+		tag:      tag,
+		typ:      typ,
+		addr:     addr,
+		hostname: hostname,
 	}
 	switch typ {
 	case "tcp":
-		out.dialer = new(net.Dialer)
+		out.dialer = &net.Dialer{}
 	case "tls":
-		out.dialer = new(tls.Dialer)
+		out.dialer = &tls.Dialer{
+			Config: &tls.Config{
+				ServerName: hostname,
+			},
+		}
 	case "stcp":
 		config, err := stcp.NewClientConfig()
 		if err != nil {
 			return nil
 		}
-		config.PrivateKey, err = base64.RawURLEncoding.DecodeString(privateKey)
+		config.PrivateKey, err = key.Base64(privateKey)
 		if err != nil {
 			return nil
 		}
-		config.ServerPub, err = base64.RawURLEncoding.DecodeString(serverPub)
+		config.ServerPub, err = key.Base64(serverPub)
 		if err != nil {
 			return nil
 		}
