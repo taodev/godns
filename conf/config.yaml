@@ -1,7 +1,7 @@
 # 日志级别（debug/info/warn/error）
 log-level: debug
 # 自定义 GeoSite 路径（可选）
-geosite: geosite.dat
+geosite: conf/geosite.dat
 # stcp 全局配置
 #stcp-key: m72mCol47vZ92EQFtvoK2wRtM-PiqXStP-w14dfYz4I
 
@@ -9,11 +9,11 @@ geosite: geosite.dat
 inbound:
   udp: { type: 'udp', addr: ':55' }
   tcp: { type: 'tcp', addr: ':55' }
-  tls: { type: 'tls', addr: ':853', cert: 'conf/cert.pem', key: 'conf/key.pem' }
+  # tls: { type: 'tls', addr: ':853', cert: 'conf/cert.pem', key: 'conf/key.pem' }
   # stcp: { type: 'stcp', addr: ':553', private-key: 'pNNBB5cJXNLEQeF7c5eV42xp-fhKFeokL347aFD2CLA' }
   stcp: { type: 'stcp', addr: ':553' }
   http: { type: 'http', addr: ':80' }
-  https: { type: 'https', addr: ':443', cert: 'conf/cert.pem', key: 'conf/key.pem' }
+  # https: { type: 'https', addr: ':443', cert: 'conf/cert.pem', key: 'conf/key.pem' }
 
 # Bootstrap DNS 服务器
 bootstrap-dns:
