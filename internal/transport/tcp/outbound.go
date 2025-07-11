@@ -252,7 +252,9 @@ func (h *Outbound) Close() {
 			close(h.closeCh)
 			h.connected.Store(false)
 			h.wait.Wait()
-			h.conn.Close()
+			if h.conn != nil {
+				h.conn.Close()
+			}
 		}
 	})
 }
