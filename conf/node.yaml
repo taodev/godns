@@ -1,0 +1,46 @@
+# 日志级别（debug/info/warn/error）
+log-level: debug
+# 自定义 GeoSite 路径（可选）
+geosite: geosite.dat
+# stcp 全局配置
+stcp-key: aeB4mgQO2XdDvWXKbX6XDbNtrO11odlRCybm0x2kdKQ
+
+# 入站配置
+inbound:
+  udp: { type: 'udp', addr: ':56' }
+  tcp: { type: 'tcp', addr: ':56' }
+  stcp: { type: 'stcp', addr: ':556'}
+
+# Bootstrap DNS 服务器
+bootstrap-dns:
+  - 223.5.5.5
+  - 223.6.6.6
+
+# 缓存配置
+cache:
+  # 最大缓存条目数
+  max-counters: 10000
+  # 最大缓存成本（与条目大小相关）
+  max-cost: 10000
+  # 写缓存数量
+  buffer-items: 64
+  # 缓存默认 TTL
+  ttl: 24h
+  # 最小覆盖 TTL (format: 1h, 1m, 1s)
+  min-ttl: 20s
+  # 最大覆盖 TTL
+  max-ttl: 24h
+  # 缓存线程数
+  threads: 5
+  # 重新请求 TTL
+  refresh-ttl: 5m
+
+# 出站配置
+outbound:
+  alidns: tls://223.5.5.5:853
+
+# 路由配置
+route:
+  block-aaaa: true
+  default: alidns
+

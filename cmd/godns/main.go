@@ -6,9 +6,11 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/taodev/godns"
+	"github.com/taodev/stcp/key"
 	"gopkg.in/yaml.v3"
 )
 
@@ -20,6 +22,27 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// 判断 StcpKey 是否设置
+	log.Printf("StcpKey: %v", len(opts.StcpKey))
+	if len(opts.StcpKey) == 0 {
+		stcpKeyPath := filepath.Join(filepath.Dir(*configPath), "stcp.key")
+		slog.Info("generate stcp key", "path", stcpKeyPath)
+		if stcpKey, err := key.Generate(stcpKeyPath); err == nil {
+			opts.StcpKey = stcpKey.String()
+		}
+	}
+	privateKey, err := key.Base64(opts.StcpKey)
+	if err != nil {
+		slog.Error("parse stcp key error", "err", err)
+		os.Exit(1)
+	}
+	publicKey, err := key.PublicKey(privateKey)
+	if err != nil {
+		slog.Error("parse stcp key error", "err", err)
+		os.Exit(1)
+	}
+	slog.Info("STCP", "publicKey", publicKey.String())
 
 	server := godns.NewDnsServer(opts, nil)
 	errCh := make(chan error, 1)

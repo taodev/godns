@@ -34,4 +34,3 @@ go.work.sum
 /godns
 test/
 *.dat
-conf/node.yaml
