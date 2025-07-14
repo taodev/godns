@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/net/idna"
+
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/adapter"
 	"github.com/taodev/godns/internal/transport/http"
@@ -113,6 +115,13 @@ func (m *Manager) Remove(tag string) {
 
 // 请求
 func (m *Manager) Exchange(tag string, in *dns.Msg) (*dns.Msg, time.Duration, error) {
+	qname := in.Question[0].Name
+	qname, err := idna.ToASCII(qname)
+	if err != nil {
+		return nil, 0, err
+	}
+	in.Question[0].Name = qname
+
 	outbound, ok := m.Get(tag)
 	if !ok {
 		return nil, 0, fmt.Errorf("outbound:%s not found", tag)
