@@ -103,10 +103,11 @@ func (r *Router) Resolve(in *dns.Msg) (resp *dns.Msg, outboundTag string, err er
 	if outbound == nil {
 		return utils.NewMsgSERVFAIL(in), "", nil
 	}
-	req := new(dns.Msg)
-	req.SetQuestion(q.Name, q.Qtype)
-	req.RecursionDesired = true
-	if resp, _, err = outbound.Exchange(req); err != nil {
+	// req := new(dns.Msg)
+	// req.SetQuestion(q.Name, q.Qtype)
+	// req.RecursionDesired = true
+	in.RecursionDesired = true
+	if resp, _, err = outbound.Exchange(in); err != nil {
 		return utils.NewMsgSERVFAIL(in), "", err
 	}
 	var answer []dns.RR
