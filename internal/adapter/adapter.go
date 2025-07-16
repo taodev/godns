@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"net"
 	"time"
 
 	"github.com/miekg/dns"
@@ -29,5 +30,5 @@ type Router interface {
 }
 
 type DnsQuery interface {
-	Resolve(in *dns.Msg) (resp *dns.Msg, outboundTag string, err error)
+	Resolve(in *dns.Msg, ip net.IP) (resp *dns.Msg, outboundTag string, err error)
 }

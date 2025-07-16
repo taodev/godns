@@ -7,13 +7,13 @@ import (
 	"net/netip"
 	"strings"
 
-	"github.com/AdguardTeam/golibs/netutil"
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/adapter"
 	"github.com/taodev/godns/internal/cache"
 	"github.com/taodev/godns/internal/rewrite"
 	"github.com/taodev/godns/internal/utils"
 	"github.com/taodev/pkg/geodb"
+	"github.com/taodev/pkg/util"
 )
 
 type Options struct {
@@ -76,7 +76,7 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 	}
 
 	// // 查询缓存
-	cv, ok := r.cache.GetAndUpdate(q.Name, q.Qtype)
+	cv, ok := r.cache.GetAndUpdate(q.Name, q.Qtype, ip)
 	if ok {
 		resp = cv.M.Copy()
 		resp.SetReply(request)
@@ -95,7 +95,7 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 	}
 
 	// 缓存
-	r.cache.Set(q.Name, q.Qtype, resp)
+	r.cache.Set(q.Name, q.Qtype, resp, ip)
 	slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "inbound", inbound, "outbound", outboundTag, "ip", ip, "response", resp.Answer)
 	return resp, nil
 }
@@ -199,7 +199,7 @@ func (r *Router) processECS(in *dns.Msg, cliIP net.IP) (reqECS *net.IPNet) {
 		return nil
 	}
 
-	if !netutil.IsSpecialPurpose(cliAddr) {
+	if !util.IsSpecialPurpose(cliAddr) {
 		// A Stub Resolver MUST set SCOPE PREFIX-LENGTH to 0.  See RFC 7871
 		// Section 6.
 		return setECS(in, cliIP, 0)

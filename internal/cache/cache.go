@@ -3,6 +3,7 @@ package cache
 import (
 	"fmt"
 	"log/slog"
+	"net"
 	"sync"
 	"time"
 
@@ -29,6 +30,7 @@ type Options struct {
 
 type CacheValue struct {
 	M        *dns.Msg
+	Addr     string
 	ExpireAt int64
 }
 
@@ -40,6 +42,7 @@ func (cv CacheValue) IsExpired() bool {
 type requestArgument struct {
 	domain string
 	qtype  uint16
+	addr   string
 }
 
 type Cache struct {
@@ -85,9 +88,10 @@ func (c *Cache) Close() {
 	c.cache.Close()
 }
 
-func (c *Cache) Set(domain string, qtype uint16, msg *dns.Msg) {
+func (c *Cache) Set(domain string, qtype uint16, msg *dns.Msg, addr string) {
 	ok := c.cache.SetWithTTL(fmt.Sprintf("%s-%d", domain, qtype), CacheValue{
 		M:        msg.Copy(),
+		Addr:     addr,
 		ExpireAt: time.Now().Add(c.opts.RefreshTTL).Unix(),
 	}, 1, c.opts.TTL)
 	if !ok {
@@ -99,7 +103,7 @@ func (c *Cache) Get(domain string, qtype uint16) (CacheValue, bool) {
 	return c.cache.Get(fmt.Sprintf("%s-%d", domain, qtype))
 }
 
-func (c *Cache) GetAndUpdate(domain string, qtype uint16) (CacheValue, bool) {
+func (c *Cache) GetAndUpdate(domain string, qtype uint16, addr string) (CacheValue, bool) {
 	cv, ok := c.Get(domain, qtype)
 	if !ok {
 		return cv, false
@@ -109,6 +113,7 @@ func (c *Cache) GetAndUpdate(domain string, qtype uint16) (CacheValue, bool) {
 		c.requestCh <- &requestArgument{
 			domain: domain,
 			qtype:  qtype,
+			addr:   addr,
 		}
 	}
 	return cv, true
@@ -135,13 +140,13 @@ func (c *Cache) handleUpdate() {
 		// 从 outbound 获取
 		req := new(dns.Msg)
 		req.SetQuestion(args.domain, args.qtype)
-		msg, _, err := c.query.Resolve(req)
+		msg, _, err := c.query.Resolve(req, net.ParseIP(args.addr))
 		if err != nil {
 			slog.Error("resolve failed", "domain", args.domain, "qtype", args.qtype, "error", err)
 			continue
 		}
 		// 缓存
-		c.Set(args.domain, args.qtype, msg)
+		c.Set(args.domain, args.qtype, msg, args.addr)
 		slog.Debug("cache update", "domain", args.domain, "qtype", args.qtype, "ttl", utils.GetMinTTL(msg))
 	}
 }
