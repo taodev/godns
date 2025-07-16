@@ -109,10 +109,6 @@ func (r *Router) Resolve(in *dns.Msg) (resp *dns.Msg, outboundTag string, err er
 	if resp, _, err = outbound.Exchange(req); err != nil {
 		return utils.NewMsgSERVFAIL(in), "", err
 	}
-	// 递归查询结果判断
-	if q.Qtype != dns.TypeCNAME && r.shouldRecurse(resp, q.Qtype) {
-		return utils.NewMsgNXDOMAIN(in), "", nil
-	}
 	var answer []dns.RR
 	for _, rr := range resp.Answer {
 		// 判断是否禁止 AAAA
@@ -172,18 +168,6 @@ func (r *Router) isForbiddenARPA(req *dns.Msg) bool {
 		return true
 	}
 	return false
-}
-
-func (Router) shouldRecurse(msg *dns.Msg, qtype uint16) (recurse bool) {
-	for _, ans := range msg.Answer {
-		if ans.Header().Rrtype == qtype {
-			return false // 找到目标记录，停止
-		}
-		if ans.Header().Rrtype == dns.TypeCNAME {
-			recurse = true
-		}
-	}
-	return recurse // 既无目标类型，也无 CNAME，可能 NXDOMAIN 或空结果
 }
 
 func (r *Router) rewrite(req *dns.Msg) *dns.Msg {
