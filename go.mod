@@ -6,7 +6,7 @@ require (
 	github.com/bytedance/gopkg v0.1.2
 	github.com/dgraph-io/ristretto/v2 v2.2.0
 	github.com/miekg/dns v1.1.66
-	github.com/taodev/pkg v0.1.11
+	github.com/taodev/pkg v0.1.12
 	github.com/taodev/stcp v0.2.6
 	golang.org/x/net v0.42.0
 	gopkg.in/yaml.v3 v3.0.1

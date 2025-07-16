@@ -67,6 +67,7 @@ func NewMsgNODATA(req *dns.Msg) (resp *dns.Msg) {
 
 	return resp
 }
+
 func reply(req *dns.Msg, code int) (resp *dns.Msg) {
 	resp = new(dns.Msg)
 	resp.SetRcode(req, code)

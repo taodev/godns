@@ -3,8 +3,11 @@ package route
 import (
 	"fmt"
 	"log/slog"
+	"net"
+	"net/netip"
 	"strings"
 
+	"github.com/AdguardTeam/golibs/netutil"
 	"github.com/miekg/dns"
 	"github.com/taodev/godns/internal/adapter"
 	"github.com/taodev/godns/internal/cache"
@@ -81,7 +84,7 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 		return resp, nil
 	}
 
-	resp, outboundTag, err := r.Resolve(request)
+	resp, outboundTag, err := r.Resolve(request, net.ParseIP(ip))
 	if err != nil {
 		slog.Debug("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "outbound", outboundTag, "error", err)
 		return nil, err
@@ -97,16 +100,15 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 	return resp, nil
 }
 
-func (r *Router) Resolve(in *dns.Msg) (resp *dns.Msg, outboundTag string, err error) {
+func (r *Router) Resolve(in *dns.Msg, ip net.IP) (resp *dns.Msg, outboundTag string, err error) {
 	q := in.Question[0]
 	outbound := r.Route(q.Name)
 	if outbound == nil {
 		return utils.NewMsgSERVFAIL(in), "", nil
 	}
-	// req := new(dns.Msg)
-	// req.SetQuestion(q.Name, q.Qtype)
-	// req.RecursionDesired = true
+
 	in.RecursionDesired = true
+	r.processECS(in, ip)
 	if resp, _, err = outbound.Exchange(in); err != nil {
 		return utils.NewMsgSERVFAIL(in), "", err
 	}
@@ -178,5 +180,30 @@ func (r *Router) rewrite(req *dns.Msg) *dns.Msg {
 		rewrite.RecursionAvailable = true
 		return rewrite
 	}
+	return nil
+}
+
+// processECS 添加 EDNS Client Subnet 到 DNS 请求中
+func (r *Router) processECS(in *dns.Msg, cliIP net.IP) (reqECS *net.IPNet) {
+	// 检查消息中是否已有有效 ECS 选项（避免覆盖）
+	if ecs, _ := ecsFromMsg(in); ecs != nil {
+		if ones, _ := ecs.Mask.Size(); ones != 0 {
+			return ecs
+		}
+	}
+
+	// 解析客户端 IP（处理 IPv4/IPv6）
+	cliAddr, ok := netip.AddrFromSlice(cliIP)
+	if !ok {
+		slog.Debug("parse client IP failed", "ip", cliIP)
+		return nil
+	}
+
+	if !netutil.IsSpecialPurpose(cliAddr) {
+		// A Stub Resolver MUST set SCOPE PREFIX-LENGTH to 0.  See RFC 7871
+		// Section 6.
+		return setECS(in, cliIP, 0)
+	}
+
 	return nil
 }
