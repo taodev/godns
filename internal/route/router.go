@@ -110,7 +110,7 @@ func (r *Router) Resolve(in *dns.Msg) (resp *dns.Msg, outboundTag string, err er
 		return utils.NewMsgSERVFAIL(in), "", err
 	}
 	// 递归查询结果判断
-	if r.shouldRecurse(resp, q.Qtype) {
+	if q.Qtype != dns.TypeCNAME && r.shouldRecurse(resp, q.Qtype) {
 		return utils.NewMsgNXDOMAIN(in), "", nil
 	}
 	var answer []dns.RR
