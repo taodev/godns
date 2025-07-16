@@ -108,7 +108,7 @@ func (r *Router) Resolve(in *dns.Msg, ip net.IP) (resp *dns.Msg, outboundTag str
 	}
 
 	in.RecursionDesired = true
-	r.processECS(in, ip)
+	// r.processECS(in, ip)
 	if resp, _, err = outbound.Exchange(in); err != nil {
 		return utils.NewMsgSERVFAIL(in), "", err
 	}
@@ -199,6 +199,7 @@ func (r *Router) processECS(in *dns.Msg, cliIP net.IP) (reqECS *net.IPNet) {
 		return nil
 	}
 
+	slog.Debug("process ECS", "ip", cliIP, "cliAddr", cliAddr)
 	if !util.IsSpecialPurpose(cliAddr) {
 		// A Stub Resolver MUST set SCOPE PREFIX-LENGTH to 0.  See RFC 7871
 		// Section 6.
