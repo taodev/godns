@@ -16,6 +16,8 @@ import (
 type Options struct {
 	// 日志级别（debug/info/warn/error）
 	LogLevel string `yaml:"log-level" default:"info"`
+	// Debug pprof
+	Pprof string `yaml:"pprof"`
 	// 入站配置
 	Inbounds struct {
 		// UDP 入站配置

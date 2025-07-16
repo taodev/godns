@@ -3,6 +3,8 @@ package godns
 import (
 	"context"
 	"log/slog"
+	gohttp "net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 	"sync"
@@ -59,6 +61,15 @@ func (s *DnsServer) init() (err error) {
 			},
 		}))
 		slog.SetDefault(s.logger)
+	}
+
+	if s.Options.Pprof != "" {
+		go func() {
+			s.logger.Info("pprof: " + s.Options.Pprof)
+			if err := gohttp.ListenAndServe(s.Options.Pprof, nil); err != nil {
+				s.logger.Error("pprof: " + err.Error())
+			}
+		}()
 	}
 
 	geodb.GeoSitePath = opts.GeoSite

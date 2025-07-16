@@ -1,5 +1,7 @@
 # 日志级别（debug/info/warn/error）
 log-level: debug
+# pprof 监听地址
+pprof: :6060
 # 自定义 GeoSite 路径（可选）
 geosite: conf/geosite.dat
 # stcp 全局配置 (默认创建并读取 config.yaml 同级目录下的 stcp.key)
