@@ -93,7 +93,7 @@ func (r *Router) Exchange(request *dns.Msg, inbound string, ip string) (resp *dn
 
 	// 缓存
 	r.cache.Set(q.Name, q.Qtype, resp)
-	slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "inbound", inbound, "outbound", outboundTag, "ip", ip)
+	slog.Info("route", "qtype", dns.TypeToString[q.Qtype], "domain", q.Name, "inbound", inbound, "outbound", outboundTag, "ip", ip, "response", resp.Answer)
 	return resp, nil
 }
 
