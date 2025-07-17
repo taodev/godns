@@ -31,10 +31,6 @@ jobs:
           CGO_ENABLED: "0"
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
-          GO386: ${{ matrix.go386 }}
-          GOARM: ${{ matrix.goarm }}
-          GOMIPS: ${{ matrix.gomips }}
-          GOMIPS64: ${{ matrix.gomips }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set name
         run: |-
@@ -74,7 +70,7 @@ jobs:
           path: "dist"
   upload:
     name: Upload builds
-    if: "!failure()"
+    if: success()
     runs-on: ubuntu-latest
     permissions:
         contents: write
