@@ -72,3 +72,7 @@ rewrite:
       value: 127.0.0.1
       # 自定义 TTL
       ttl: 5s
+    - geosite: netflix
+      value: 127.0.0.1
+    - geosite: openai
+      value: 10.0.0.2

@@ -85,7 +85,10 @@ func (s *DnsServer) init() (err error) {
 		return err
 	}
 	s.outbound = transport.NewManager(opts.Outbounds, opts.StcpKey)
-	s.rewriter = rewrite.NewRewriter(opts.Rewrite)
+	s.rewriter, err = rewrite.NewRewriter(opts.Rewrite)
+	if err != nil {
+		return err
+	}
 	if s.router, err = route.New(&opts.Route, s.outbound, s.rewriter, s.cache); err != nil {
 		return err
 	}

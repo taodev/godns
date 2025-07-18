@@ -8,12 +8,15 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/taodev/pkg/defaults"
+	"github.com/taodev/pkg/geodb"
 )
 
 // 重写配置
 type RuleOptions struct {
 	// 域名
 	Domain string `yaml:"domain"`
+	// GeoSite
+	GeoSite string `yaml:"geosite"`
 	// 类型
 	Type string `yaml:"type" default:"A"`
 	// 值
@@ -31,19 +34,40 @@ type Options struct {
 
 type Rewriter struct {
 	options Options
+	matcher []geodb.Matcher
 }
 
-func NewRewriter(opts Options) *Rewriter {
+func NewRewriter(opts Options) (*Rewriter, error) {
 	defaults.Set(&opts)
+	matcher := make([]geodb.Matcher, len(opts.Rules))
+	var err error
+	for i, rule := range opts.Rules {
+		slog.Debug("rewrite rule", "rule", rule)
+		if rule.GeoSite != "" {
+			matcher[i], err = geodb.Site(geodb.GeoSitePath, rule.GeoSite)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			matcher[i] = &geodb.DomainMatcher{Code: rule.Domain}
+		}
+
+		if rule.Domain != "" {
+			matcher[i].(*geodb.DomainMatcher).Params = []*geodb.Param{
+				{Key: geodb.DomainKeyFull, Val: rule.Domain},
+			}
+		}
+	}
 	return &Rewriter{
 		options: opts,
-	}
+		matcher: matcher,
+	}, nil
 }
 
 func (r *Rewriter) Rewrite(domain string, qtype uint16) (*dns.Msg, bool) {
 	query := strings.ToLower(strings.TrimSuffix(domain, "."))
-	for _, rule := range r.options.Rules {
-		if !strings.EqualFold(query, rule.Domain) {
+	for i, rule := range r.options.Rules {
+		if !r.matcher[i].Match(query) {
 			continue
 		}
 		targetType, ok := dns.StringToType[rule.Type]
